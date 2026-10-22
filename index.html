@@ -58,10 +58,9 @@ label{display:block;color:var(--mu);font-size:14px;margin:14px 0 6px}
 .sw{width:46px;height:26px;border-radius:99px;background:var(--s2);position:relative;flex:none;border:1px solid var(--ln)}.sw:after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--mu);transition:left .15s}.sw.on{background:var(--or)}.sw.on:after{left:22px;background:#fff}
 .rec,.cat,.item{transition:transform .1s}.rec:active,.cat:active,.item:active{transform:scale(.98)}
 @media (orientation:landscape){
-.stage{right:min(34vw,330px)}
-.hud{display:grid;grid-template-columns:1fr min(34vw,330px);grid-template-rows:auto 1fr}
+.hud{display:grid;grid-template-columns:1fr min(30vw,290px);grid-template-rows:auto 1fr}
 .hud .bar{grid-column:1;grid-row:1}.hud .msg{grid-column:1;grid-row:2;align-self:end;margin-bottom:12px}
-.panel{grid-column:2;grid-row:1/3;background:#0b0f0cf2;border-left:1px solid var(--ln);padding:12px 14px;overflow:auto;display:flex;flex-direction:column;justify-content:center}
+.hud .bar{background:none}.panel{grid-column:2;grid-row:1/3;background:none;border:0;padding:12px 14px;overflow:auto;display:flex;flex-direction:column;justify-content:center;pointer-events:none;text-shadow:0 1px 6px #000,0 0 2px #000}.panel button{pointer-events:auto}.panel .court{background:#0006;border-radius:8px}.panel .btn{background:#ff7a29e6;text-shadow:none}.panel .btn.alt{background:#000a;color:var(--tx)}.hud .msg{background:#0008}
 .big b{font-size:64px}.big i{font-size:34px}.panel .court{width:46%}.stats{flex-wrap:wrap;gap:8px 18px}.panel .btn{padding:11px;margin-top:10px}}
 </style></head><body><div id="app"></div><div id="sess" hidden></div>
 <script>
