@@ -1,0 +1,189 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101311"><link rel="manifest" href="manifest.json"><title>Swish</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Figtree:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#101311;--s1:#181e1a;--s2:#212923;--ln:#2e382f;--tx:#eef1e8;--mu:#8d998d;--or:#ff7a29;--gr:#3ddc84;--rd:#ff5a4d;color-scheme:dark}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--tx);font:16px/1.45 Figtree,system-ui,sans-serif}
+body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+#app{max-width:480px;margin:auto;padding:20px 18px 96px;min-height:100vh}
+h1,h2,.num{font-family:'Big Shoulders Display','Arial Narrow',Impact,sans-serif;font-weight:800;line-height:1}
+h1{font-size:40px;margin-bottom:8px}h2{font-size:26px;margin:26px 0 12px}
+p.sub{color:var(--mu);margin-bottom:18px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--or);outline-offset:2px}
+input{font:inherit;color:var(--tx);background:var(--s1);border:1px solid var(--ln);border-radius:10px;padding:14px;width:100%}
+label{display:block;color:var(--mu);font-size:14px;margin:14px 0 6px}
+.btn{display:block;width:100%;background:var(--or);color:#1a0d02;font-weight:700;padding:15px;border-radius:12px;margin-top:18px}
+.btn.alt{background:var(--s2);color:var(--tx)}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{padding:13px 18px;border-radius:99px;border:1px solid var(--ln);background:var(--s1)}
+.chip.on{background:var(--or);border-color:var(--or);color:#1a0d02;font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.prog{height:4px;background:var(--s2);border-radius:4px;margin-bottom:26px}.prog i{display:block;height:100%;background:var(--or);border-radius:4px}
+.rec{display:block;width:100%;text-align:left;background:var(--s1);border-left:4px solid var(--or);border-radius:4px 14px 14px 4px;padding:14px 16px;margin-bottom:10px}
+.rec b{font-size:18px}.rec span{display:block;color:var(--mu);font-size:14px;margin-top:2px}.rec em{font-style:normal;color:var(--or);font-size:14px;display:block;margin-top:6px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cat{text-align:left;background:var(--b);border:1px solid var(--c);border-radius:18px;padding:16px;min-height:150px;display:flex;flex-direction:column;justify-content:flex-end}
+.cat .dotc{width:34px;height:34px;border-radius:50%;background:var(--c);margin-bottom:auto}
+.cat b{font-size:19px}.cat span{color:var(--mu);font-size:14px}
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--s1);border-top:1px solid var(--ln);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+.tabs button{flex:1;padding:15px 0;color:var(--mu);font-weight:500}.tabs .on{color:var(--or);font-weight:700}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.item{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;background:var(--s1);border-radius:12px;padding:14px 16px;margin-bottom:8px}
+.item small{color:var(--mu);display:block}.item .num{font-size:30px}
+.back{color:var(--mu);margin-bottom:14px;padding:6px 0}
+.court{width:100%;background:#0b0e0c;border-radius:10px;display:block}
+.err{color:var(--rd);margin-top:12px;font-size:14px}.ok{color:var(--gr);margin-top:12px;font-size:14px}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--s2);padding:10px 16px;border-radius:99px;font-size:14px;z-index:30}
+#sess{position:fixed;inset:0;background:#000;z-index:20;overflow:auto}
+#sess[hidden]{display:none}
+.stage{position:fixed;inset:0}.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.hud{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.hud>*{pointer-events:auto}
+.bar{display:flex;align-items:center;gap:12px;padding:12px 14px;background:linear-gradient(#000a,#0000)}
+.ic{width:40px;height:40px;border-radius:50%;background:#000a;font-size:18px}
+.msg{margin:0 14px;padding:10px 14px;background:#000b;border-radius:12px;font-size:15px;align-self:center;text-align:center}
+.panel{background:linear-gradient(#0000,#000d 28%);padding:30px 16px 16px}
+.panel .row{align-items:flex-end}.panel .court{width:38%}
+.big{display:flex;align-items:baseline;gap:6px}.big b{font-family:'Big Shoulders Display',Impact,sans-serif;font-size:96px;line-height:.9}.big i{font-size:48px;color:var(--mu);font-style:normal}
+.stats{display:flex;gap:16px;margin:10px 0;color:var(--mu);font-size:14px}.stats b{color:var(--tx);font-size:18px;display:block}
+.dots{display:flex;gap:6px;flex-wrap:wrap;min-height:26px}.dot{width:22px;height:22px;border-radius:50%}.dot.in{background:var(--gr)}.dot.out{background:var(--rd)}
+.res{max-width:480px;margin:auto;padding:24px 18px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body><div id="app"></div><div id="sess" hidden></div>
+<script>
+const CFG={SUPABASE_URL:'https://ifgtsizuvxescnoorfzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_TaNz9oUIgfLl6aHMdg5Vjw_xfWBYBhP'};
+const $=s=>document.querySelector(s),app=$('#app'),sess=$('#sess');
+const LS={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+let sb=null,user=null,profile=LS.get('profile',null),sessions=LS.get('sessions',[]),guest=LS.get('guest',false),tab='home',cat=null,detail=null,authMsg='',ob=null;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),fmt=s=>Math.floor(s/60)+':'+(s%60).toFixed(1).padStart(4,'0');
+const DRILLS=[
+{id:'ft',n:'Free throw',d:'10 tembakan dari garis lemparan bebas.',max:10},
+{id:'close',n:'Dekat ring',d:'15 tembakan di bawah ring: layup dan tembakan jarak pendek.',max:15},
+{id:'mid',n:'Jarak menengah',d:'15 tembakan dari area di dalam garis tiga poin.',max:15},
+{id:'three',n:'Tiga poin',d:'20 tembakan dari luar garis tiga poin.',max:20},
+{id:'sprint',n:'Tembak 60 detik',d:'Sebanyak mungkin tembakan dalam 60 detik.',max:999,lim:60},
+{id:'weak',n:'Tangan lemah',d:'10 tembakan dekat ring dengan tangan non-dominan.',max:10}];
+const CATS=[['shoot','Shooting','#3ddc84','#17301f'],['dribble','Dribbling','#ff9a4d','#33261a'],['finish','Finishing','#5b9bff','#18263d'],['defense','Defense','#ff6b6b','#381d20'],['ath','Athleticism','#f2c94c','#36321a']];
+const OB=[{t:'Ukuran badanmu',s:'Dipakai untuk menyesuaikan latihan.',k:'body'},
+{t:'Posisi main',k:'pos',o:[['PG','Point guard'],['SG','Shooting guard'],['SF','Small forward'],['PF','Power forward'],['C','Center']]},
+{t:'Tangan dominan',k:'hand',o:[['R','Kanan'],['L','Kiri']]},
+{t:'Mau fokus ke mana?',s:'Boleh pilih lebih dari satu.',k:'focus',m:1,o:[['shoot','Shooting'],['dribble','Dribbling'],['defense','Defense']]}];
+const courtSVG=(sh=[])=>`<svg viewBox="0 0 150 140" class="court"><g fill="none" stroke="#e9eee3" stroke-opacity=".6" stroke-width="1.2"><rect x="1" y="1" width="148" height="138"/><rect x="50.5" y="82" width="49" height="57"/><path d="M57 82a18 18 0 0 1 36 0"/><path d="M9 139V110A67.5 67.5 0 0 1 141 110V139"/><circle cx="75" cy="124" r="2.5" stroke="#ff7a29"/></g>${sh.map(s=>`<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="3.6" fill="${s.m?'#3ddc84':'#ff5a4d'}" stroke="#101311" stroke-width=".8"/>`).join('')}</svg>`;
+const toast=m=>{const t=document.createElement('div');t.id='toast';t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),1800)};
+const persist=()=>{LS.set('profile',profile);LS.set('sessions',sessions.slice(0,100))};
+async function cloud(fn){if(!sb||!user)return;try{await fn()}catch(e){console.warn(e)}}
+const saveProfile=()=>cloud(()=>sb.from('profiles').upsert({id:user.id,data:profile}));
+const saveSession=s=>cloud(()=>sb.from('sessions').insert({user_id:user.id,data:s}));
+async function pull(){await cloud(async()=>{const{data:p}=await sb.from('profiles').select('data').eq('id',user.id).maybeSingle();if(p)profile=p.data;const{data:s}=await sb.from('sessions').select('data').order('created_at',{ascending:false}).limit(100);if(s&&s.length)sessions=s.map(r=>r.data);persist()})}
+async function init(){
+ if(CFG.SUPABASE_URL&&window.supabase){sb=supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY);const{data}=await sb.auth.getSession();user=data.session?.user||null;if(user)await pull()}
+ if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+ render()}
+function stats(list){const a=list.flatMap(s=>s.shots),m=a.filter(x=>x.m).length;return{n:a.length,m,p:a.length?Math.round(m/a.length*100):0}}
+function recs(){
+ const st={};sessions.forEach(s=>{const a=st[s.drill]||={m:0,a:0};a.a+=s.shots.length;a.m+=s.shots.filter(x=>x.m).length});
+ const g=['PG','SG'].includes(profile.pos),big=['PF','C'].includes(profile.pos),offh=profile.hand==='R'?'kiri':'kanan';
+ return DRILLS.map(d=>{let s=0,w='';const x=st[d.id];
+  if(!x){s+=3;w='Belum pernah kamu coba.'}else{const p=x.m/x.a;s+=(1-p)*5;w=`Akurasimu ${Math.round(p*100)}%, masih bisa naik.`}
+  if(d.id==='three'&&g&&!x){s+=2;w=`Sebagai ${profile.pos}, tembakan tiga poin jadi senjata utama.`}
+  if(d.id==='close'&&big&&!x){s+=2;w=`Sebagai ${profile.pos}, mulai dari penyelesaian dekat ring.`}
+  if(d.id==='weak'){s+=1;if(!x)w=`Kamu dominan ${profile.hand==='R'?'kanan':'kiri'}, latih tangan ${offh}.`}
+  if(d.id==='ft'&&!sessions.length){s+=4;w='Titik awal terbaik untuk mengukur akurasimu.'}
+  return{...d,s,w}}).sort((a,b)=>b.s-a.s).slice(0,3)}
+function render(){
+ if(sb&&!user&&!guest)return authView();
+ if(!profile||ob)return obView();
+ if(detail)return resultView(detail);
+ const T=(k,l)=>`<button class="${tab===k?'on':''}" data-a="tab" data-v="${k}">${l}</button>`;
+ app.innerHTML=(tab==='home'?homeView():tab==='hist'?histView():profView())+`<nav class="tabs">${T('home','Latihan')}${T('hist','Riwayat')}${T('prof','Profil')}</nav>`}
+function authView(){app.innerHTML=`<h1>Swish</h1><p class="sub">Masuk supaya progres latihanmu tersimpan di semua perangkat.</p>
+<label for="em">Email</label><input id="em" type="email" autocomplete="email"><label for="pw">Kata sandi</label><input id="pw" type="password" autocomplete="current-password">
+<button class="btn" data-a="login">Masuk</button><button class="btn alt" data-a="signup">Buat akun baru</button><button class="back" style="margin-top:14px" data-a="guest">Lanjut tanpa akun</button><p class="${authMsg.startsWith('Cek')?'ok':'err'}">${authMsg}</p>`}
+function obView(){ob=ob||{i:0,d:{h:'',w:'',pos:'',hand:'',focus:[],...(profile||{})}};const q=OB[ob.i],d=ob.d;
+ const body=q.k==='body'?`<div class="two"><div><label for="h">Tinggi (cm)</label><input id="h" type="number" inputmode="numeric" value="${d.h}"></div><div><label for="w">Berat (kg)</label><input id="w" type="number" inputmode="numeric" value="${d.w}"></div></div>`
+ :`<div class="chips">${q.o.map(([v,l])=>`<button class="chip ${(q.m?d.focus.includes(v):d[q.k]===v)?'on':''}" data-a="pick" data-v="${v}">${l}</button>`).join('')}</div>`;
+ app.innerHTML=`<div class="prog"><i style="width:${(ob.i+1)/OB.length*100}%"></i></div><h1>${q.t}</h1><p class="sub">${q.s||''}</p>${body}<button class="btn" data-a="next">${ob.i===OB.length-1?'Mulai latihan':'Lanjut'}</button>${ob.i?'<button class="back" style="margin-top:12px" data-a="prev">Kembali</button>':''}<p class="err" id="oe"></p>`}
+function homeView(){
+ if(cat){const l=DRILLS;return`<button class="back" data-a="cat" data-v="">Kembali</button><h1>Shooting</h1><p class="sub">${l.length} latihan dengan pelacakan kamera.</p>${l.map(d=>`<button class="rec" data-a="drill" data-v="${d.id}"><b>${d.n}</b><span>${d.d}</span></button>`).join('')}`}
+ const wk=stats(sessions.filter(s=>Date.now()-s.date<6048e5)),f=profile.focus;
+ return`<h1>Latihan hari ini</h1><p class="sub">${wk.n?`Minggu ini ${wk.n} tembakan, ${wk.p}% masuk.`:'Belum ada sesi minggu ini. Mulai dari yang paling cocok untukmu.'}</p>
+<h2>Dipilih untuk kamu</h2>${recs().map(r=>`<button class="rec" data-a="drill" data-v="${r.id}"><b>${r.n}</b><span>${r.d}</span><em>${r.w}</em></button>`).join('')}
+${f.some(x=>x!=='shoot')?'<p class="sub">Latihan dribbling dan defense menyusul. Untuk sekarang shooting dulu.</p>':''}
+<h2>Perpustakaan</h2><div class="grid">${CATS.map(([k,n,c,b])=>`<button class="cat" style="--c:${c};--b:${b}" data-a="cat" data-v="${k}"><i class="dotc"></i><b>${n}</b><span>${k==='shoot'?DRILLS.length+' latihan':'Segera'}</span></button>`).join('')}</div>`}
+function histView(){if(!sessions.length)return`<h1>Riwayat</h1><p class="sub">Belum ada sesi. Selesaikan satu latihan dan hasilnya muncul di sini.</p>`;
+ return`<h1>Riwayat</h1><p class="sub">Ketuk sesi untuk lihat lokasi tembakan.</p>${sessions.map((s,i)=>{const t=stats([s]);return`<button class="item" data-a="open" data-v="${i}"><div><b>${s.name}</b><small>${new Date(s.date).toLocaleDateString('id-ID',{day:'numeric',month:'short'})}, ${t.p}% masuk</small></div><span class="num">${t.m}/${t.n}</span></button>`}).join('')}`}
+function profView(){const p=profile,P={PG:'Point guard',SG:'Shooting guard',SF:'Small forward',PF:'Power forward',C:'Center'};
+ return`<h1>Profil</h1><p class="sub">${user?user.email:'Mode tanpa akun: data hanya di perangkat ini.'}</p>
+<div class="item"><span>Tinggi dan berat</span><b>${p.h} cm, ${p.w} kg</b></div><div class="item"><span>Posisi</span><b>${P[p.pos]}</b></div><div class="item"><span>Tangan dominan</span><b>${p.hand==='R'?'Kanan':'Kiri'}</b></div><div class="item"><span>Fokus</span><b>${p.focus.join(', ')}</b></div>
+<button class="btn alt" data-a="edit">Ubah data diri</button><button class="btn alt" data-a="${user?'logout':'login2'}">${user?'Keluar':'Masuk ke akun'}</button>`}
+function resultView(s){const t=stats([s]),dur=s.dur;
+ app.innerHTML=`<button class="back" data-a="close">Kembali</button><h1>${s.name}</h1><p class="sub">${t.p}% masuk dalam ${fmt(dur)}.</p>
+<div class="two" style="margin-bottom:14px"><div class="item" style="display:block"><small>In</small><span class="num" style="color:var(--gr)">${t.m}</span></div><div class="item" style="display:block"><small>Miss</small><span class="num" style="color:var(--rd)">${t.n-t.m}</span></div><div class="item" style="display:block"><small>Waktu</small><span class="num">${fmt(dur)}</span></div><div class="item" style="display:block"><small>Percobaan</small><span class="num">${t.n}</span></div></div>${courtSVG(s.shots)}<p class="sub" style="margin-top:8px">Hijau masuk, merah meleset. Lokasi adalah perkiraan dari kamera.</p>`}
+const act={
+ tab:v=>{tab=v;cat=null;render()},cat:v=>{if(v&&v!=='shoot')return toast('Segera hadir');cat=v||null;render()},
+ drill:v=>startDrill(v),open:v=>{detail=sessions[v];render()},close:()=>{detail=null;render()},
+ pick:v=>{const q=OB[ob.i],d=ob.d;if(q.m)d.focus=d.focus.includes(v)?d.focus.filter(x=>x!==v):[...d.focus,v];else d[q.k]=v;obView()},
+ prev:()=>{ob.i--;obView()},
+ next:()=>{const q=OB[ob.i],d=ob.d,e=$('#oe');
+  if(q.k==='body'){d.h=$('#h').value;d.w=$('#w').value;if(!(d.h>100&&d.h<250&&d.w>25&&d.w<250))return e.textContent='Isi tinggi 100-250 cm dan berat 25-250 kg.'}
+  else if(q.m?!d.focus.length:!d[q.k])return e.textContent='Pilih satu dulu.';
+  if(ob.i<OB.length-1){ob.i++;return obView()}
+  profile={h:d.h,w:d.w,pos:d.pos,hand:d.hand,focus:d.focus};ob=null;persist();saveProfile();render()},
+ edit:()=>{ob=null;ob={i:0,d:{...profile}};obView()},
+ guest:()=>{guest=true;LS.set('guest',true);render()},
+ login2:()=>{guest=false;LS.set('guest',false);render()},
+ login:async()=>{const{error}=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});if(error){authMsg='Email atau kata sandi salah.';return authView()}const{data}=await sb.auth.getSession();user=data.session.user;authMsg='';await pull();render()},
+ signup:async()=>{const{data,error}=await sb.auth.signUp({email:$('#em').value,password:$('#pw').value});if(error){authMsg=error.message;return authView()}if(data.session){user=data.session.user;await pull();render()}else{authMsg='Cek email kamu untuk konfirmasi, lalu masuk.';authView()}},
+ logout:async()=>{await sb.auth.signOut();user=null;profile=null;sessions=[];persist();render()},
+ flip:v=>{const s=S.shots[v];s.m=!s.m;pan()},go:()=>{S.phase='run';S.t0=performance.now();$('#msg').textContent='Mulai menembak. Ketuk titik jika hitungan salah.';pan()},
+ finish:()=>finishDrill(),quit:()=>{stopCam();sess.hidden=true;sess.innerHTML=''},fin:()=>{sess.hidden=true;sess.innerHTML='';tab='hist';render()}};
+document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a&&act[a.dataset.a])act[a.dataset.a](a.dataset.v)});
+/* ---- sesi latihan ---- */
+const S={};
+const load=u=>new Promise((r,j)=>{const s=document.createElement('script');s.src=u;s.onload=r;s.onerror=j;document.head.append(s)});
+async function startDrill(id){
+ const d=DRILLS.find(x=>x.id===id);Object.assign(S,{d,rim:null,taps:[],shots:[],trail:[],att:null,cool:0,phase:'load',on:true,busy:0,ball:null});
+ sess.hidden=false;sess.innerHTML=`<div class="stage"><video id="v" playsinline muted autoplay></video><canvas id="c"></canvas></div><div class="hud"><div class="bar"><button class="ic" data-a="quit" aria-label="Tutup">✕</button><b>${d.n}</b></div><p class="msg" id="msg">Membuka kamera dan memuat model...</p><div class="panel" id="pn"></div></div>`;
+ const v=S.v=$('#v'),cv=S.cv=$('#c');S.ctx=cv.getContext('2d');
+ try{S.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false});v.srcObject=S.stream;await v.play();cv.width=v.videoWidth;cv.height=v.videoHeight}
+ catch{return $('#msg').textContent='Kamera tidak bisa dibuka. Izinkan akses kamera dan buka lewat HTTPS.'}
+ try{if(!window.cocoSsd){await load('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');await load('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js')}S.model=await cocoSsd.load({base:'lite_mobilenet_v2'})}
+ catch{return $('#msg').textContent='Model gagal dimuat. Cek koneksi internet lalu coba lagi.'}
+ S.phase='cal';$('#msg').textContent='Ketuk sisi kiri ring di layar.';
+ cv.onclick=e=>{if(S.phase!=='cal')return;const r=cv.getBoundingClientRect(),k=Math.min(r.width/cv.width,r.height/cv.height),p={x:(e.clientX-r.left-(r.width-cv.width*k)/2)/k,y:(e.clientY-r.top-(r.height-cv.height*k)/2)/k};S.taps.push(p);
+  if(S.taps.length===1)$('#msg').textContent='Sekarang ketuk sisi kanan ring.';
+  else{const[a,b]=S.taps;S.rim={x:(a.x+b.x)/2,y:(a.y+b.y)/2,w:Math.max(Math.abs(a.x-b.x),12)};S.phase='ready';$('#msg').textContent='Ring terkunci. Taruh HP diam, lalu tekan Mulai.';pan()}};
+ loop()}
+function pan(){const m=S.shots.filter(x=>x.m).length,n=S.shots.length,pn=$('#pn');if(!pn)return;
+ pn.innerHTML=S.phase==='run'?`<div class="row"><div class="big"><b>${m}</b><i>/</i><b>${n}</b></div>${courtSVG(S.shots)}</div><div class="stats"><span>Miss<b>${n-m}</b></span><span>In<b>${m}</b></span><span>Waktu<b id="tm">0:00.0</b></span><span>Percobaan<b>${n}${S.d.max<999?'/'+S.d.max:''}</b></span></div><div class="dots">${S.shots.map((s,i)=>`<button class="dot ${s.m?'in':'out'}" data-a="flip" data-v="${i}" aria-label="Tembakan ${i+1}"></button>`).join('')}</div><button class="btn" data-a="finish">Selesai</button>`
+ :S.phase==='ready'?'<button class="btn" data-a="go">Mulai</button>':''}
+async function loop(){
+ if(!S.on)return;const now=performance.now();
+ if(S.model&&!S.busy&&S.v.readyState>=2){S.busy=1;try{const p=await S.model.detect(S.v,6),b=p.filter(o=>o.class==='sports ball'&&o.score>.25).sort((a,b)=>b.score-a.score)[0];
+  S.ball=b?{x:b.bbox[0]+b.bbox[2]/2,y:b.bbox[1]+b.bbox[3]/2,d:b.bbox[2],h:b.bbox[3],t:performance.now()}:null;
+  if(S.ball){S.trail.push(S.ball);S.trail=S.trail.filter(q=>S.ball.t-q.t<2500);if(S.phase==='run')track(S.ball)}}catch{}S.busy=0}
+ if(S.phase==='run'){const el=(now-S.t0)/1000,tm=$('#tm');if(tm)tm.textContent=fmt(el);
+  if(S.att&&now-S.att.t0>1800){const l=S.trail[S.trail.length-1],R=S.rim;resolve(!!l&&Math.abs(l.x-R.x)<R.w*.5&&l.y<R.y+R.w*.3&&l.y>R.y-R.w)}
+  if(S.d.lim&&el>=S.d.lim)return finishDrill()}
+ draw();S.raf=requestAnimationFrame(loop)}
+function track(b){const R=S.rim,n=S.trail.length,last=S.trail[n-2],dist=Math.hypot(b.x-R.x,b.y-R.y),zone=R.w*2.2,t=performance.now();if(t<S.cool)return;
+ if(!S.att&&dist<zone&&b.y<R.y+R.w*.8){const rel=S.trail.reduce((a,q)=>q.y>a.y?q:a,S.trail[0]);S.att={t0:t,rel}}
+ if(S.att){if(last&&last.y<R.y&&b.y>=R.y&&Math.abs(b.x-R.x)<R.w*.65)resolve(true);else if(dist>zone*1.4)resolve(false)}}
+function resolve(m){const a=S.att,R=S.rim,W=S.cv.width,f=.65*W,r=a.rel;S.att=null;S.cool=performance.now()+1500;
+ const rd=f*.457/R.w,bd=f*.24/Math.max(r.d,6),dx=((r.x-W/2)*bd-(R.x-W/2)*rd)/f,dz=rd-bd;
+ S.shots.push({m,x:clamp(75+dx*10,5,145),y:clamp(124-dz*10,6,136),t:+((performance.now()-r.t)/1000).toFixed(2)});pan();
+ if(S.shots.length>=S.d.max)finishDrill()}
+function draw(){const c=S.ctx,R=S.rim;c.clearRect(0,0,S.cv.width,S.cv.height);c.lineWidth=3;
+ if(R){c.strokeStyle='#ff7a29';c.beginPath();c.ellipse(R.x,R.y,R.w/2,R.w/5,0,0,7);c.stroke()}
+ c.strokeStyle='#3df0ff';c.beginPath();S.trail.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.stroke();
+ const b=S.ball;if(b&&performance.now()-b.t<300){c.strokeStyle='#fff';c.strokeRect(b.x-b.d/2,b.y-b.h/2,b.d,b.h)}}
+function stopCam(){S.on=false;cancelAnimationFrame(S.raf);S.stream?.getTracks().forEach(t=>t.stop())}
+function finishDrill(){const dur=S.phase==='run'?(performance.now()-S.t0)/1000:0;stopCam();
+ const s={id:Date.now().toString(36),drill:S.d.id,name:S.d.n,date:Date.now(),dur,shots:S.shots};
+ if(!s.shots.length){sess.hidden=true;sess.innerHTML='';return toast('Belum ada tembakan terdeteksi')}
+ sessions.unshift(s);persist();saveSession(s);
+ const t=stats([s]);sess.innerHTML=`<div class="res"><h1>${t.m}/${t.n}</h1><p class="sub">${t.p}% masuk dalam ${fmt(dur)}.</p>${courtSVG(s.shots)}<p class="sub" style="margin-top:8px">Hijau masuk, merah meleset.</p><button class="btn" data-a="fin">Lihat riwayat</button></div>`}
+init();
+</script></body></html>
