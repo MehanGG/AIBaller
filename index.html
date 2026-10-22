@@ -65,6 +65,7 @@ label{display:block;color:var(--mu);font-size:14px;margin:14px 0 6px}
 .coach{position:fixed;left:14px;top:62px;max-width:min(52vw,440px);background:#000b;border-left:3px solid var(--or);border-radius:10px;padding:10px 14px;font-size:15px;pointer-events:none;z-index:6}.coach[hidden]{display:none}
 html{touch-action:manipulation}*{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}input{-webkit-user-select:text;user-select:text}img,svg,canvas,video{-webkit-user-drag:none}
 .ls{padding-left:20px}.ls li{margin-bottom:8px}
+a.btn{text-align:center;text-decoration:none}.vid{width:100%;aspect-ratio:16/9;border:0;border-radius:12px;margin-top:8px}
 </style></head><body><div id="app"></div><div id="sess" hidden></div>
 <script>
 const CFG={SUPABASE_URL:'https://ifgtsizuvxescnoorfzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_TaNz9oUIgfLl6aHMdg5Vjw_xfWBYBhP'};
@@ -83,7 +84,28 @@ const DRILLS=[
 {id:'d60',c:'dribble',m:'dribble',n:'Dribble 60 detik',d:'Sama seperti 30 detik, tapi untuk daya tahan.',max:9999,lim:60},
 {id:'d100',c:'dribble',m:'dribble',n:'Target 100 dribble',d:'Selesaikan 100 pantulan secepat mungkin.',max:100},
 {id:'lay',c:'finish',n:'Layup 10',d:'10 layup bergantian kiri dan kanan.',max:10},
-{id:'fin60',c:'finish',n:'Finishing 60 detik',d:'Layup sebanyak mungkin dalam 60 detik.',max:999,lim:60}];
+{id:'fin60',c:'finish',n:'Finishing 60 detik',d:'Layup sebanyak mungkin dalam 60 detik.',max:999,lim:60},
+{id:'bank',c:'shoot',n:'Bank shot',d:'12 tembakan memantul di papan dari sudut kiri dan kanan.',max:12},
+{id:'step',c:'shoot',n:'Step-back',d:'10 tembakan step-back: mundur satu langkah lalu tembak.',max:10},
+{id:'corner',c:'shoot',n:'Tiga poin sudut',d:'10 tembakan tiga poin dari sudut lapangan.',max:10},
+{id:'euro',c:'finish',n:'Euro step',d:'10 layup dengan euro step.',max:10},
+{id:'float',c:'finish',n:'Floater',d:'10 tembakan floater (lob pendek) di area key.',max:10},
+{id:'rev',c:'finish',n:'Reverse layup',d:'10 layup dari sisi sebaliknya ring.',max:10},
+{id:'hook',c:'finish',n:'Hook shot',d:'10 tembakan hook dekat ring.',max:10}];
+[['cross','Crossover','Pindahkan bola cepat dari satu tangan ke tangan lain di depan badan.','Dribble rendah, dorong bola menyamping ke tangan lain, turunkan bahu untuk mengecoh.',1],
+['dcross','Double crossover','Dua crossover beruntun untuk mengecoh bek.','Lakukan crossover, lalu langsung kembalikan bola ke tangan awal dengan gerakan yang sama cepat.',1],
+['legs','Between the legs','Bola melewati sela kaki dari satu tangan ke tangan lain.','Langkahkan satu kaki ke depan, pantulkan bola lewat sela kaki ke tangan lain, jaga bola tetap rendah.',1],
+['back','Behind the back','Bola dipantulkan melewati punggung ke tangan lain.','Dorong bola ke belakang pinggul sambil melangkah, ambil dengan tangan lain di sisi sebaliknya.',1],
+['spin','Spin dribble','Putar badan 360 derajat sambil melindungi bola.','Pivot dengan kaki depan, badan membelakangi bola saat berputar, ganti tangan di akhir putaran.',1],
+['fig8','Figure 8','Bola berputar membentuk angka 8 di sela kedua kaki.','Bungkuk sedikit, bawa bola mengitari kaki kiri lalu kanan secara bergantian tanpa berhenti.',1],
+['hesi','Hesitation','Berhenti sejenak lalu melaju untuk mengecoh bek.','Perlambat dribble, angkat badan seolah berhenti, lalu dorong bola ke depan dengan ledakan.',0],
+['inout','In-and-out','Pura-pura crossover lalu bola kembali ke tangan yang sama.','Putar telapak tangan di sisi bola seolah crossover, tarik kembali bola ke arah semula.',0],
+['snatch','Snatchback','Tarik bola cepat ke belakang untuk mengubah arah.','Dribble ke depan, tarik bola ke belakang dengan telapak tangan di atasnya, lalu ganti arah.',0],
+['low','Dribble rendah','Dribble sangat rendah dan cepat untuk kontrol maksimal.','Turunkan badan, pantulkan bola setinggi lutut atau lebih rendah dengan ujung jari.',0],
+['speed','Dribble kecepatan','Dribble secepat mungkin tanpa kehilangan bola.','Dribble pendek dan keras dengan pergelangan tangan, jaga kepala tetap tegak.',0],
+['dweak','Dribble tangan lemah','Dribble hanya dengan tangan non-dominan.','Pakai tangan non-dominanmu saja, jaga ritme sama dengan tangan dominan.',0]]
+.forEach(([id,n,d,tip,mv])=>DRILLS.push({id,c:'dribble',m:'dribble',mv,n,d,tip,max:9999,lim:30,q:n+' basketball dribble tutorial'}));
+const VQ={ft:'basketball free throw tutorial',close:'basketball close range shooting tutorial',mid:'mid range jump shot tutorial',three:'three point shooting form tutorial',sprint:'basketball shooting drill',weak:'weak hand layup drill',d30:'pound dribble basketball drill',d60:'basketball dribbling drill',d100:'basketball dribbling drill beginners',lay:'layup tutorial',fin60:'basketball finishing drill',bank:'bank shot basketball tutorial',step:'step back jumper tutorial',corner:'corner three shooting tutorial',euro:'euro step tutorial',float:'floater tutorial basketball',rev:'reverse layup tutorial',hook:'hook shot tutorial basketball'};
 const CATS=[['shoot','Shooting','#3ddc84','#17301f'],['dribble','Dribbling','#ff9a4d','#33261a'],['finish','Finishing','#5b9bff','#18263d'],['defense','Defense','#ff6b6b','#381d20'],['ath','Athleticism','#f2c94c','#36321a']];
 const OB=[{t:'Ukuran badanmu',s:'Dipakai untuk menyesuaikan latihan.',k:'body'},
 {t:'Posisi main',k:'pos',o:[['PG','Point guard'],['SG','Shooting guard'],['SF','Small forward'],['PF','Power forward'],['C','Center']]},
@@ -140,8 +162,9 @@ const BR={shoot:{prep:['Bola basket dan ring yang bisa dipakai','Tripod atau san
  todo:['Taruh HP sekitar 2-3 meter di depanmu. Bola dan tanganmu harus tetap masuk bingkai','Putar HP ke landscape','Tekan Mulai di layar, lalu dribble di tempat','Pantulan rapi dapat +10 poin, bola kabur dari kamera dikurangi 5']}};
 function briefView(){const d=DRILLS.find(x=>x.id===brief),dr=d.m==='dribble',B=dr?BR.dribble:BR.shoot,cam=opt.cam||'environment',
  tg=d.lim?`Waktu ${d.lim} detik`:dr?`Target ${d.max} dribble`:`${d.max} tembakan`,
+ vq=d.q||VQ[d.id]||d.n+' basketball tutorial',vid=d.vid?`<iframe class="vid" src="https://www.youtube-nocookie.com/embed/${d.vid}" allowfullscreen></iframe>`:`<a class="btn alt" href="https://www.youtube.com/results?search_query=${encodeURIComponent(vq)}" target="_blank" rel="noopener">Lihat contoh video</a>`,
  T=(l,on,a)=>`<button class="item" data-a="${a}"><b>${l}</b><span class="sw ${on?'on':''}"></span></button>`;
- app.innerHTML=`<button class="back" data-a="brx">Kembali</button><h1>${d.n}</h1><p class="sub">${d.d} ${tg}.</p>
+ app.innerHTML=`<button class="back" data-a="brx">Kembali</button><h1>${d.n}</h1><p class="sub">${d.d} ${tg}.</p>${vid}${d.tip?`<h2>Cara melakukannya</h2><p>${d.tip}</p>${d.mv?'<p class="sub" style="margin-top:8px">Gerakan dihitung dari perpindahan bola kiri-kanan. Jenis gerakan tidak diverifikasi AI.</p>':''}`:''}
 <h2>Yang perlu disiapkan</h2><ul class="ls">${B.prep.map(x=>`<li>${x}</li>`).join('')}</ul>
 <h2>Yang perlu dilakukan</h2><ol class="ls">${B.todo.map(x=>`<li>${x}</li>`).join('')}</ol>
 <h2>Kamera</h2><div class="chips"><button class="chip ${cam==='environment'?'on':''}" data-a="cam" data-v="environment">Belakang</button><button class="chip ${cam==='user'?'on':''}" data-a="cam" data-v="user">Depan</button></div>
@@ -153,7 +176,7 @@ function profView(){const p=profile,P={PG:'Point guard',SG:'Shooting guard',SF:'
 <div class="item"><span>Tinggi dan berat</span><b>${p.h} cm, ${p.w} kg</b></div><div class="item"><span>Posisi</span><b>${P[p.pos]}</b></div><div class="item"><span>Tangan dominan</span><b>${p.hand==='R'?'Kanan':'Kiri'}</b></div><div class="item"><span>Fokus</span><b>${p.focus.join(', ')}</b></div>
 <h2>Pengaturan</h2><button class="item" data-a="auto"><div><b>Auto Pick Ring<span class="beta">Beta</span></b><small>AI mencari ring sendiri, tanpa ketuk kiri dan kanan.</small></div><span class="sw ${opt.auto?'on':''}"></span></button><button class="item" data-a="coach"><div><b>AI Coach</b><small>Memberi tahu letak kesalahan tiap 3 tembakan atau 10 dribble, lewat teks dan suara.</small></div><span class="sw ${opt.coach?'on':''}"></span></button><button class="btn alt" data-a="edit">Ubah data diri</button><button class="btn alt" data-a="${user?'logout':'login2'}">${user?'Keluar':'Masuk ke akun'}</button>`}
 function resBody(s){const t=stats([s]),dur=s.dur,B=(l,v,c='')=>`<div class="item" style="display:block"><small>${l}</small><span class="num" ${c}>${v}</span></div>`;
- if(s.dr)return`<p class="sub">${s.dr.score} poin dari ${s.dr.n} dribble dalam ${fmt(dur)}.</p><div class="two">${B('Poin',s.dr.score,'style="color:var(--or)"')}${B('Dribble',s.dr.n)}${B('Bola kabur',s.dr.esc)}${B('Kecepatan',s.dr.rate.toFixed(1)+'/dtk')}${B('Tinggi rata-rata',s.dr.h+' cm')}${B('Waktu',fmt(dur))}</div>`;
+ if(s.dr)return`<p class="sub">${s.dr.score} poin dari ${s.dr.n} dribble dalam ${fmt(dur)}.</p><div class="two">${B('Poin',s.dr.score,'style="color:var(--or)"')}${B('Dribble',s.dr.n)}${B('Bola kabur',s.dr.esc)}${s.dr.mv?B('Pindah sisi',s.dr.sw):''}${B('Kecepatan',s.dr.rate.toFixed(1)+'/dtk')}${B('Tinggi rata-rata',s.dr.h+' cm')}${B('Waktu',fmt(dur))}</div>`;
  return`<p class="sub">${t.p}% masuk dalam ${fmt(dur)}.</p><div class="two" style="margin-bottom:14px">${B('In',t.m,'style="color:var(--gr)"')}${B('Miss',t.n-t.m,'style="color:var(--rd)"')}${B('Waktu',fmt(dur))}${B('Percobaan',t.n)}</div>${courtSVG(s.shots)}<p class="sub" style="margin-top:8px">Hijau masuk, merah meleset. Lokasi adalah perkiraan dari kamera.</p>`}
 function resultView(s){app.innerHTML=`<button class="back" data-a="close">Kembali</button><h1>${s.name}</h1>${resBody(s)}`}
 const act={
@@ -172,7 +195,7 @@ const act={
  login:async()=>{const{error}=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});if(error){authMsg='Email atau kata sandi salah.';return authView()}const{data}=await sb.auth.getSession();user=data.session.user;authMsg='';await pull();render()},
  signup:async()=>{const{data,error}=await sb.auth.signUp({email:$('#em').value,password:$('#pw').value});if(error){authMsg=error.message;return authView()}if(data.session){user=data.session.user;await pull();render()}else{authMsg='Cek email kamu untuk konfirmasi, lalu masuk.';authView()}},
  logout:async()=>{await sb.auth.signOut();user=null;profile=null;sessions=[];persist();render()},
- coach:()=>{opt.coach=!opt.coach;LS.set('set',opt);render();if(opt.coach)say('AI Coach aktif. Saya akan memberi masukan saat kamu latihan.')},flipcam:async()=>{if(!['cal','auto','ready'].includes(S.phase))return toast('Ganti kamera sebelum mulai');const prev=opt.cam||'environment';opt.cam=prev==='user'?'environment':'user';try{await openCam()}catch{opt.cam=prev;try{await openCam()}catch{}return toast('Kamera itu tidak tersedia')}LS.set('set',opt);S.trail=[];S.ball=null;if(S.d.m!=='dribble')act.redo()},auto:()=>{opt.auto=!opt.auto;LS.set('set',opt);render()},flip:v=>{const s=S.shots[v];s.m=!s.m;pan()},go:()=>{S.phase='run';S.t0=performance.now();S.dr={n:0,y:null,lo:0,hi:0,dir:0,hs:[],sc:0,esc:0,lost:0};S.seen=performance.now();$('#msg').textContent=S.d.m==='dribble'?'Mulai dribble. Jaga bola tetap terlihat kamera.':'Mulai menembak. Ketuk titik jika hitungan salah.';pan()},redo:()=>{S.taps=[];S.rim=null;S.lock=0;S.phase=opt.auto?'auto':'cal';S.ts=S.t1=performance.now();$('#msg').textContent=opt.auto?'Arahkan kamera ke ring dan tahan diam.':'Ketuk sisi kiri ring di layar.';pan()},
+ coach:()=>{opt.coach=!opt.coach;LS.set('set',opt);render();if(opt.coach)say('AI Coach aktif. Saya akan memberi masukan saat kamu latihan.')},flipcam:async()=>{if(!['cal','auto','ready'].includes(S.phase))return toast('Ganti kamera sebelum mulai');const prev=opt.cam||'environment';opt.cam=prev==='user'?'environment':'user';try{await openCam()}catch{opt.cam=prev;try{await openCam()}catch{}return toast('Kamera itu tidak tersedia')}LS.set('set',opt);S.trail=[];S.ball=null;if(S.d.m!=='dribble')act.redo()},auto:()=>{opt.auto=!opt.auto;LS.set('set',opt);render()},flip:v=>{const s=S.shots[v];s.m=!s.m;pan()},go:()=>{S.phase='run';S.t0=performance.now();S.dr={n:0,y:null,lo:0,hi:0,dir:0,hs:[],sc:0,esc:0,lost:0,sw:0,sg:0,ax:null};S.seen=performance.now();$('#msg').textContent=S.d.m==='dribble'?'Mulai dribble. Jaga bola tetap terlihat kamera.':'Mulai menembak. Ketuk titik jika hitungan salah.';pan()},redo:()=>{S.taps=[];S.rim=null;S.lock=0;S.phase=opt.auto?'auto':'cal';S.ts=S.t1=performance.now();$('#msg').textContent=opt.auto?'Arahkan kamera ke ring dan tahan diam.':'Ketuk sisi kiri ring di layar.';pan()},
  finish:()=>finishDrill(),quit:()=>{stopCam();sess.hidden=true;sess.innerHTML=''},fin:()=>{sess.hidden=true;sess.innerHTML='';tab='hist';render()}};
 document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a&&act[a.dataset.a])act[a.dataset.a](a.dataset.v)});
 /* ---- sesi latihan ---- */
@@ -197,7 +220,7 @@ async function openCam(){S.stream?.getTracks().forEach(t=>t.stop());S.stream=awa
 function pan(){const pn=$('#pn');if(!pn)return;const dr=S.d.m==='dribble',m=S.shots.filter(x=>x.m).length,n=S.shots.length;
  if(S.phase==='ready'){pn.innerHTML='<button class="btn" data-a="go">Mulai</button>'+(dr?'':'<button class="btn alt" data-a="redo">Pilih ulang ring</button>');return}
  if(S.phase!=='run'){pn.innerHTML='';return}
- pn.innerHTML=dr?`<div class="big"><b id="dp">0</b><i style="font-size:20px">poin</i></div><div class="stats"><span>Dribble<b id="dn">0</b></span><span>Per detik<b id="dr">0.0</b></span><span>Tinggi (cm)<b id="dh">0</b></span><span>Waktu<b id="tm">0:00.0</b></span></div><button class="btn" data-a="finish">Selesai</button>`
+ pn.innerHTML=dr?`<div class="big"><b id="dp">0</b><i style="font-size:20px">poin</i></div><div class="stats"><span>Dribble<b id="dn">0</b></span>${S.d.mv?'<span>Pindah sisi<b id="ds">0</b></span>':''}<span>Per detik<b id="dr">0.0</b></span><span>Tinggi (cm)<b id="dh">0</b></span><span>Waktu<b id="tm">0:00.0</b></span></div><button class="btn" data-a="finish">Selesai</button>`
  :`<div class="row"><div class="big"><b>${m}</b><i>/</i><b>${n}</b></div>${courtSVG(S.shots)}</div><div class="stats"><span>Miss<b>${n-m}</b></span><span>In<b>${m}</b></span><span>Waktu<b id="tm">0:00.0</b></span><span>Percobaan<b>${n}${S.d.max<999?'/'+S.d.max:''}</b></span></div><div class="dots">${S.shots.map((s,i)=>`<button class="dot ${s.m?'in':'out'}" data-a="flip" data-v="${i}" aria-label="Tembakan ${i+1}"></button>`).join('')}</div><button class="btn" data-a="finish">Selesai</button>`}
 async function loop(){
  if(!S.on)return;const now=performance.now();
@@ -221,11 +244,12 @@ function draw(){const c=S.ctx,R=S.rim;c.clearRect(0,0,S.cv.width,S.cv.height);c.
  c.strokeStyle='#3df0ff';c.beginPath();S.trail.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.stroke();
  const b=S.ball;if(b&&performance.now()-b.t<300){c.strokeStyle='#fff';c.strokeRect(b.x-b.d/2,b.y-b.h/2,b.d,b.h)}}
 function dribTrack(b){const D=S.dr,th=Math.max(b.d*.6,10);S.seen=performance.now();D.lost=0;
+ D.ax=D.ax==null?b.x:D.ax+(b.x-D.ax)*.03;{const sx=b.x-D.ax,sg=Math.abs(sx)>b.d*.7?Math.sign(sx):0;if(sg&&D.sg&&sg!==D.sg){D.sw++;if(S.d.mv)D.sc+=Math.abs(sx)>b.d*1.2?10:5}if(sg)D.sg=sg}
  if(D.y==null){D.y=D.lo=D.hi=b.y;return}
  D.lo=Math.min(D.lo,b.y);D.hi=Math.max(D.hi,b.y);
  if(D.dir<=0&&b.y-D.lo>th){D.dir=1;D.hi=b.y}
  else if(D.dir>=0&&D.hi-b.y>th){if(D.dir===1){const cm=(D.hi-D.lo)/Math.max(b.d,6)*24,av=D.hs.length?D.hs.reduce((a,c)=>a+c,0)/D.hs.length:cm,dv=Math.abs(cm-av)/av,p=cm>=25&&cm<=75&&dv<.3?10:cm>=15&&cm<=95&&dv<.5?5:2;
-  D.n++;D.hs.push(cm);D.sc+=p;if(D.n>=S.d.max)finishDrill();else if(opt.coach&&D.n%10===0)coachDrib()}D.dir=-1;D.lo=b.y}}
+  D.n++;D.hs.push(cm);if(!S.d.mv)D.sc+=p;if(D.n>=S.d.max)finishDrill();else if(opt.coach&&D.n%10===0)coachDrib()}D.dir=-1;D.lo=b.y}}
 async function ai(kind,data,fb){if(S.cb)return;S.cb=1;
  try{const c=new AbortController(),to=setTimeout(()=>c.abort(),4500);
   const r=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,data,profile:{pos:profile.pos,hand:profile.hand,h:profile.h,w:profile.w}}),signal:c.signal});clearTimeout(to);
@@ -244,11 +268,12 @@ function coachDrib(){const D=S.dr,h=D.hs.slice(-10),av=h.reduce((a,b)=>a+b,0)/h.
  if(D.esc>(D.escC||0)){t='Bola beberapa kali lepas dari bingkai. Dribble lebih dekat ke badan dan tahan kepala tegak.';D.escC=D.esc}
  else if(av>80)t='Pantulan terlalu tinggi. Rendahkan sampai sekitar pinggang supaya lebih terkontrol.';
  else if(av<20)t='Pantulan terlalu rendah dan lemah. Dorong bola dari pergelangan tangan.';
+ else if(S.d.mv&&D.sw<D.n/6)t='Perpindahan kiri-kanan masih sedikit. Lebarkan gerakan bola ke samping.';
  else if(sd/av>.35)t='Tinggi pantulanmu berubah-ubah. Jaga tekanan tangan yang sama di setiap pantulan.';
  else if(rate<1.6)t='Tempomu masih pelan. Coba percepat sambil tetap menjaga bola.';
  else t='Dribble kamu stabil. Pertahankan, lalu coba naikkan tempo.';
- ai('dribble',{latihan:S.d.n,tinggiRata:Math.round(av),simpangan:Math.round(sd),perDetik:+rate.toFixed(1),bolaKabur:D.esc,poin:D.sc,jumlah:D.n},t)}
-function dribUI(el){const D=S.dr,q=i=>$('#'+i);if(!q('dn'))return;q('dn').textContent=D.n;q('dp').textContent=D.sc;q('dr').textContent=(el>1?D.n/el:0).toFixed(1);q('dh').textContent=D.hs.length?Math.round(D.hs.reduce((a,b)=>a+b,0)/D.hs.length):0}
+ ai('dribble',{latihan:S.d.n,tinggiRata:Math.round(av),simpangan:Math.round(sd),perDetik:+rate.toFixed(1),bolaKabur:D.esc,poin:D.sc,jumlah:D.n,pindahSisi:D.sw},t)}
+function dribUI(el){const D=S.dr,q=i=>$('#'+i);if(!q('dn'))return;q('dn').textContent=D.n;q('dp').textContent=D.sc;if(q('ds'))q('ds').textContent=D.sw;q('dr').textContent=(el>1?D.n/el:0).toFixed(1);q('dh').textContent=D.hs.length?Math.round(D.hs.reduce((a,b)=>a+b,0)/D.hs.length):0}
 function autoRing(now){
  if(now-S.t1<180)return;S.t1=now;
  const v=S.v,W=320,H=Math.round(W*v.videoHeight/v.videoWidth),k=v.videoWidth/W,cv=S.sc||(S.sc=document.createElement('canvas'));cv.width=W;cv.height=H;
@@ -269,7 +294,7 @@ function autoRing(now){
 function stopCam(){try{screen.orientation.unlock();document.fullscreenElement&&document.exitFullscreen()}catch{}S.on=false;cancelAnimationFrame(S.raf);S.stream?.getTracks().forEach(t=>t.stop())}
 function finishDrill(){if(S.done)return;S.done=1;const dur=S.phase==='run'?(performance.now()-S.t0)/1000:0;stopCam();
  const s={id:Date.now().toString(36),drill:S.d.id,name:S.d.n,date:Date.now(),dur,shots:S.shots},D=S.dr,bye=m=>{sess.hidden=true;sess.innerHTML='';toast(m)};
- if(S.d.m==='dribble'){if(!D||!D.n)return bye('Belum ada dribble terdeteksi');s.dr={n:D.n,score:D.sc,esc:D.esc,rate:D.n/Math.max(dur,1),h:Math.round(D.hs.reduce((a,b)=>a+b,0)/D.hs.length)}}
+ if(S.d.m==='dribble'){if(!D||!D.n)return bye('Belum ada dribble terdeteksi');s.dr={n:D.n,score:D.sc,esc:D.esc,mv:S.d.mv?1:0,sw:D.sw,rate:D.n/Math.max(dur,1),h:Math.round(D.hs.reduce((a,b)=>a+b,0)/D.hs.length)}}
  else if(!s.shots.length)return bye('Belum ada tembakan terdeteksi');
  sessions.unshift(s);persist();saveSession(s);
  sess.innerHTML=`<div class="res"><h1>${s.name}</h1>${resBody(s)}<button class="btn" data-a="fin">Lihat riwayat</button></div>`}
