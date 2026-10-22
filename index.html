@@ -1,4 +1,4 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101311"><link rel="manifest" href="manifest.json"><title>AIBaller</title>
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#101311"><link rel="manifest" href="manifest.json"><title>AIBaller</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Figtree:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
@@ -63,6 +63,8 @@ label{display:block;color:var(--mu);font-size:14px;margin:14px 0 6px}
 .hud .bar{background:none}.panel{grid-column:2;grid-row:1/3;background:none;border:0;padding:12px 14px;overflow:auto;display:flex;flex-direction:column;justify-content:center;pointer-events:none;text-shadow:0 1px 6px #000,0 0 2px #000}.panel button{pointer-events:auto}.panel .court{background:#0006;border-radius:8px}.panel .btn{background:#ff7a29e6;text-shadow:none}.panel .btn.alt{background:#000a;color:var(--tx)}.hud .msg{background:#0008}
 .big b{font-size:64px}.big i{font-size:34px}.panel .court{width:46%}.stats{flex-wrap:wrap;gap:8px 18px}.panel .btn{padding:11px;margin-top:10px}}
 .coach{position:fixed;left:14px;top:62px;max-width:min(52vw,440px);background:#000b;border-left:3px solid var(--or);border-radius:10px;padding:10px 14px;font-size:15px;pointer-events:none;z-index:6}.coach[hidden]{display:none}
+html{touch-action:manipulation}*{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}input{-webkit-user-select:text;user-select:text}img,svg,canvas,video{-webkit-user-drag:none}
+.ls{padding-left:20px}.ls li{margin-bottom:8px}
 </style></head><body><div id="app"></div><div id="sess" hidden></div>
 <script>
 const CFG={SUPABASE_URL:'https://ifgtsizuvxescnoorfzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_TaNz9oUIgfLl6aHMdg5Vjw_xfWBYBhP'};
@@ -114,6 +116,7 @@ function recs(){
 function render(){
  if(sb&&!user&&!guest)return authView();
  if(!profile||ob)return obView();
+ if(brief)return briefView();
  if(detail)return resultView(detail);
  const T=(k,l)=>`<button class="${tab===k?'on':''}" data-a="tab" data-v="${k}">${l}</button>`;
  app.innerHTML=(tab==='home'?homeView():tab==='hist'?histView():profView())+`<nav class="tabs">${T('home','Latihan')}${T('hist','Riwayat')}${T('prof','Profil')}</nav>`}
@@ -131,6 +134,18 @@ function homeView(){
 <h2>Dipilih untuk kamu</h2>${recs().map(r=>`<button class="rec" style="border-color:${CATS.find(c=>c[0]===r.c)[2]}" data-a="drill" data-v="${r.id}"><b>${r.n}</b><span>${r.d}</span><em>${r.w}</em></button>`).join('')}
 ${f.includes('defense')?'<p class="sub">Tracker defense menyusul karena butuh deteksi pose.</p>':''}
 <h2>Perpustakaan</h2><div class="grid">${CATS.map(([k,n,c,b])=>`<button class="cat" style="--c:${c};--b:${b}" data-a="cat" data-v="${k}"><i class="dotc"></i><b>${n}</b><span>${DRILLS.some(d=>d.c===k)?DRILLS.filter(d=>d.c===k).length+' latihan':'Segera'}</span></button>`).join('')}</div>`}
+const BR={shoot:{prep:['Bola basket dan ring yang bisa dipakai','Tripod atau sandaran supaya HP diam, jangan dipegang','Cahaya cukup, hindari matahari yang menyilaukan kamera','Baterai HP cukup dan internet aktif (untuk model dan coach)'],
+ todo:['Taruh HP sekitar 3-5 meter dari ring, menghadap ring. Pastikan ring dan area tembakanmu masuk bingkai','Putar HP ke landscape','Kalibrasi ring: otomatis kalau Auto Pick Ring aktif, kalau tidak ketuk sisi kiri lalu kanan ring','Tekan Mulai di layar, lalu menembak. Kalau hitungan salah, ketuk titiknya untuk membalik']},
+ dribble:{prep:['Bola basket dan area datar sekitar 2x2 meter','Tripod atau sandaran supaya HP diam setinggi pinggang','Cahaya cukup dan latar yang tidak terlalu ramai','Baterai HP cukup dan internet aktif'],
+ todo:['Taruh HP sekitar 2-3 meter di depanmu. Bola dan tanganmu harus tetap masuk bingkai','Putar HP ke landscape','Tekan Mulai di layar, lalu dribble di tempat','Pantulan rapi dapat +10 poin, bola kabur dari kamera dikurangi 5']}};
+function briefView(){const d=DRILLS.find(x=>x.id===brief),dr=d.m==='dribble',B=dr?BR.dribble:BR.shoot,cam=opt.cam||'environment',
+ tg=d.lim?`Waktu ${d.lim} detik`:dr?`Target ${d.max} dribble`:`${d.max} tembakan`,
+ T=(l,on,a)=>`<button class="item" data-a="${a}"><b>${l}</b><span class="sw ${on?'on':''}"></span></button>`;
+ app.innerHTML=`<button class="back" data-a="brx">Kembali</button><h1>${d.n}</h1><p class="sub">${d.d} ${tg}.</p>
+<h2>Yang perlu disiapkan</h2><ul class="ls">${B.prep.map(x=>`<li>${x}</li>`).join('')}</ul>
+<h2>Yang perlu dilakukan</h2><ol class="ls">${B.todo.map(x=>`<li>${x}</li>`).join('')}</ol>
+<h2>Kamera</h2><div class="chips"><button class="chip ${cam==='environment'?'on':''}" data-a="cam" data-v="environment">Belakang</button><button class="chip ${cam==='user'?'on':''}" data-a="cam" data-v="user">Depan</button></div>
+<div style="margin-top:18px">${dr?'':T('Auto Pick Ring (beta)',opt.auto,'auto')}${T('AI Coach',opt.coach,'coach')}</div><button class="btn" data-a="begin">Mulai</button>`}
 function histView(){if(!sessions.length)return`<h1>Riwayat</h1><p class="sub">Belum ada sesi. Selesaikan satu latihan dan hasilnya muncul di sini.</p>`;
  return`<h1>Riwayat</h1><p class="sub">Ketuk sesi untuk lihat lokasi tembakan.</p>${sessions.map((s,i)=>{const t=stats([s]);return`<button class="item" data-a="open" data-v="${i}"><div><b>${s.name}</b><small>${new Date(s.date).toLocaleDateString('id-ID',{day:'numeric',month:'short'})}, ${s.dr?s.dr.n+' dribble, '+s.dr.rate.toFixed(1)+'/dtk':t.p+'% masuk'}</small></div><span class="num">${s.dr?s.dr.score+' poin':t.m+'/'+t.n}</span></button>`}).join('')}`}
 function profView(){const p=profile,P={PG:'Point guard',SG:'Shooting guard',SF:'Small forward',PF:'Power forward',C:'Center'};
@@ -143,7 +158,7 @@ function resBody(s){const t=stats([s]),dur=s.dur,B=(l,v,c='')=>`<div class="item
 function resultView(s){app.innerHTML=`<button class="back" data-a="close">Kembali</button><h1>${s.name}</h1>${resBody(s)}`}
 const act={
  tab:v=>{tab=v;cat=null;render()},cat:v=>{if(v&&!DRILLS.some(d=>d.c===v))return toast('Segera hadir');cat=v||null;render()},
- drill:v=>startDrill(v),open:v=>{detail=sessions[v];render()},close:()=>{detail=null;render()},
+ drill:v=>{brief=v;render()},brx:()=>{brief=null;render()},cam:v=>{opt.cam=v;LS.set('set',opt);render()},begin:()=>{const id=brief;brief=null;startDrill(id)},open:v=>{detail=sessions[v];render()},close:()=>{detail=null;render()},
  pick:v=>{const q=OB[ob.i],d=ob.d;if(q.m)d.focus=d.focus.includes(v)?d.focus.filter(x=>x!==v):[...d.focus,v];else d[q.k]=v;obView()},
  prev:()=>{ob.i--;obView()},
  next:()=>{const q=OB[ob.i],d=ob.d,e=$('#oe');
@@ -161,7 +176,7 @@ const act={
  finish:()=>finishDrill(),quit:()=>{stopCam();sess.hidden=true;sess.innerHTML=''},fin:()=>{sess.hidden=true;sess.innerHTML='';tab='hist';render()}};
 document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a&&act[a.dataset.a])act[a.dataset.a](a.dataset.v)});
 /* ---- sesi latihan ---- */
-const S={};let opt=LS.get('set',{auto:false,coach:false});
+const S={};let opt=LS.get('set',{auto:false,coach:false}),brief=null;
 const load=u=>new Promise((r,j)=>{const s=document.createElement('script');s.src=u;s.onload=r;s.onerror=j;document.head.append(s)});
 async function startDrill(id){
  const d=DRILLS.find(x=>x.id===id);Object.assign(S,{d,rim:null,taps:[],shots:[],trail:[],att:null,cool:0,phase:'load',on:true,busy:0,ball:null,done:0,lock:0,cand:null,pc:null,dr:null});
@@ -258,5 +273,6 @@ function finishDrill(){if(S.done)return;S.done=1;const dur=S.phase==='run'?(perf
  else if(!s.shots.length)return bye('Belum ada tembakan terdeteksi');
  sessions.unshift(s);persist();saveSession(s);
  sess.innerHTML=`<div class="res"><h1>${s.name}</h1>${resBody(s)}<button class="btn" data-a="fin">Lihat riwayat</button></div>`}
+document.addEventListener('contextmenu',e=>e.preventDefault());['gesturestart','gesturechange','gestureend'].forEach(n=>document.addEventListener(n,e=>e.preventDefault()));document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
 init();
 </script></body></html>
