@@ -77,6 +77,7 @@ a.btn{text-align:center;text-decoration:none}.vid{width:100%;aspect-ratio:16/9;b
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.ib,.gnd{animation:none}.logo{animation:none;opacity:1}}
 .dot.vio{background:#ffd400}
+.bd{width:12px;height:12px;border-radius:50%;background:var(--rd);flex:none;margin-left:6px}.bd.ok{background:var(--gr)}
 </style></head><body><div id="app"></div><div id="sess" hidden></div><div id="intro"><div class="iw"><svg class="ib" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#ff7a29"/><path d="M4 50h92M50 4v92M24 22c15 18 15 38 0 56M76 22c-15 18-15 38 0 56" stroke="#101311" stroke-width="4" fill="none"/></svg><div class="gnd"></div><h1 class="logo"><b>AI</b>Baller</h1></div></div>
 <script>
 const CFG={SUPABASE_URL:'https://ifgtsizuvxescnoorfzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_TaNz9oUIgfLl6aHMdg5Vjw_xfWBYBhP'};
@@ -217,7 +218,7 @@ const S={};let opt=LS.get('set',{auto:false,coach:false}),brief=null;
 const load=u=>new Promise((r,j)=>{const s=document.createElement('script');s.src=u;s.onload=r;s.onerror=j;document.head.append(s)});
 async function startDrill(id){
  const d=DRILLS.find(x=>x.id===id);Object.assign(S,{d,rim:null,taps:[],shots:[],trail:[],att:null,cool:0,phase:'load',on:true,busy:0,ball:null,done:0,fb:[],sd:0,sdp:0,fbT:0,sdT:0,F:null,pose:null,lock:0,cand:null,pc:null,dr:null});
- sess.hidden=false;sess.innerHTML=`<div class="stage"><video id="v" playsinline muted autoplay></video><canvas id="c"></canvas></div><div class="hud"><div class="bar"><button class="ic" data-a="quit" aria-label="Tutup">✕</button><b>${d.n}</b><button class="ic" style="margin-left:auto" data-a="flipcam" aria-label="Ganti kamera">⟲</button></div><div class="coach" id="coach" hidden></div><p class="rot">Putar HP ke landscape untuk hasil terbaik</p><p class="msg" id="msg">Membuka kamera dan memuat model...</p><div class="panel" id="pn"></div></div>`;
+ sess.hidden=false;sess.innerHTML=`<div class="stage"><video id="v" playsinline muted autoplay></video><canvas id="c"></canvas></div><div class="hud"><div class="bar"><button class="ic" data-a="quit" aria-label="Tutup">✕</button><b>${d.n}</b><i id="bd" class="bd" title="Bola terdeteksi"></i><button class="ic" style="margin-left:auto" data-a="flipcam" aria-label="Ganti kamera">⟲</button></div><div class="coach" id="coach" hidden></div><p class="rot">Putar HP ke landscape untuk hasil terbaik</p><p class="msg" id="msg">Membuka kamera dan memuat model...</p><div class="panel" id="pn"></div></div>`;
  const v=S.v=$('#v'),cv=S.cv=$('#c');S.ctx=cv.getContext('2d');try{await document.documentElement.requestFullscreen();await screen.orientation.lock('landscape')}catch{}
  try{await openCam()}
  catch{return $('#msg').textContent='Kamera tidak bisa dibuka. Izinkan akses kamera dan buka lewat HTTPS.'}
@@ -265,6 +266,10 @@ async function aiRing(){$('#msg').textContent='AI mencari ring...';const j=await
  $('#msg').textContent='AI belum menemukan ring, mencoba cara lokal...'}
 async function aiSeed(){S.sdT=performance.now();const j=await vis('ball',[snap(640)]);
  if(j&&j.found&&j.box&&S.on){const[y0,x0,y1,x1]=j.box,W=S.cv.width,H=S.cv.height,d=(x1-x0)/1000*W;if(d>=6&&d<W*.3){S.sd=d;S.trail=[{x:(x0+x1)/2/1000*W,y:(y0+y1)/2/1000*H,d,h:(y1-y0)/1000*H,t:performance.now()}]}}}
+function qc(now){if(now-(S.qT||0)<700)return;S.qT=now;const c=S.qc||(S.qc=document.createElement('canvas'));c.width=64;c.height=36;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(S.v,0,0,64,36);
+ const d=x.getImageData(0,0,64,36).data,cur=new Uint8Array(2304),pv=S.qp;let L=0,df=0;
+ for(let i=0;i<2304;i++){const y=d[i*4]*.3+d[i*4+1]*.59+d[i*4+2]*.11;cur[i]=y;L+=y;if(pv)df+=Math.abs(y-pv[i])}
+ S.qp=cur;L/=2304;df/=2304;S.tip=L<55?'Ruangan terlalu gelap. Nyalakan lampu atau pindah ke tempat terang.':df>14?'HP bergerak. Taruh di tripod atau sandaran supaya diam.':opt.cam==='user'?'Kamera depan kualitasnya rendah. Kamera belakang lebih akurat.':''}
 async function openCam(){S.stream?.getTracks().forEach(t=>t.stop());S.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:opt.cam||'environment',width:{ideal:1280},height:{ideal:720}},audio:false});S.v.srcObject=S.stream;await S.v.play();S.cv.width=S.v.videoWidth;S.cv.height=S.v.videoHeight}
 function pan(){const pn=$('#pn');if(!pn)return;const dr=S.d.m==='dribble',m=S.shots.filter(x=>x.m).length,n=S.shots.length;
  if(S.phase==='ready'){pn.innerHTML='<button class="btn" data-a="go">Mulai</button>'+(dr?'':'<button class="btn alt" data-a="redo">Pilih ulang ring</button>'+(opt.auto?'<button class="btn alt" data-a="manual">Pilih manual</button>':''));return}
@@ -279,7 +284,11 @@ async function loop(){
  if(S.phase==='run'){if(opt.vis){if(!S.ball&&!S.sdp&&now-Math.max(S.t0,S.sdT||0)>(S.sdT?6000:2500)){S.sdp=1;aiSeed().then(()=>S.sdp=0)}if(now-S.fbT>500){S.fbT=now;S.fb.push({t:now,u:snap(480,.6)});if(S.fb.length>14)S.fb.shift()}}const el=(now-S.t0)/1000,tm=$('#tm');if(tm)tm.textContent=fmt(el);if(S.d.m==='dribble'){dribUI(el);const D=S.dr;if(D.n>0&&!D.lost&&now-S.seen>1200){D.lost=1;D.sc-=5;D.esc++;D.lb=1e15;if(opt.coach)say('Bola kabur. Dribble lebih dekat ke badan.')}}
   if(S.att&&now-S.att.t0>1800){const l=S.trail[S.trail.length-1],R=S.rim;resolve(!!l&&Math.abs(l.x-R.x)<R.w*.5&&l.y<R.y+R.w*.3&&l.y>R.y-R.w)}
   if(S.d.lim&&el>=S.d.lim)return finishDrill()}
- if(S.phase==='auto')autoRing(now);draw();S.raf=requestAnimationFrame(loop)}
+ if(S.phase==='auto')autoRing(now);
+ if(S.v.readyState>=2)qc(now);const ok=S.ball&&now-S.ball.t<600,bd=$('#bd');if(bd)bd.className='bd'+(ok?' ok':'');if(ok)S.seenAny=now;
+ if(S.phase==='ready'){const m=$('#msg');if(m){const t=S.tip||(S.d.m==='dribble'?(ok?'Bola terdeteksi. Tekan Mulai.':'Pegang bola di depan kamera sampai titik hijau di atas menyala, lalu tekan Mulai.'):'Ring terkunci. Taruh HP diam, lalu tekan Mulai.');if(m.textContent!==t)m.textContent=t}}
+ if(S.phase==='run'&&now-(S.seenAny||S.t0)>5000&&now-(S.tipT||0)>8000){S.tipT=now;say(S.tip||'Bola tidak terlihat. Pastikan bola dan badanmu masuk bingkai dan cahaya cukup.',true)}
+ draw();S.raf=requestAnimationFrame(loop)}
 function track(b){const R=S.rim,n=S.trail.length,last=S.trail[n-2],dist=Math.hypot(b.x-R.x,b.y-R.y),zone=R.w*2.2,t=performance.now();if(t<S.cool)return;
  if(!S.att&&dist<zone&&b.y<R.y+R.w*.8){const rel=S.trail.reduce((a,q)=>q.y>a.y?q:a,S.trail[0]);S.att={t0:t,rel,md:1e9,np:b}}
  if(S.att&&dist<S.att.md){S.att.md=dist;S.att.np=b}
