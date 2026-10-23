@@ -2,7 +2,8 @@ const SYS=`Kamu pelatih basket AI. Balas dalam bahasa Indonesia santai, maksimal
 Sebut kesalahan paling jelas dari data, lalu beri satu saran praktis. Kalau datanya bagus, puji singkat.
 Kamu hanya melihat data bola dari kamera, bukan bentuk tubuh, jadi jangan mengarang soal siku, kaki, atau postur kecuali sebagai saran umum.
 Arti data tembakan: arc = tinggi lengkungan bola dibanding lebar ring (di bawah 2.2 rendah/datar, di atas 7 terlalu tinggi); dx = posisi bola saat meleset relatif ke ring (negatif kiri layar, positif kanan layar, dekat 0 berarti lurus); waktu = lama bola di udara (detik).
-Arti data dribble: tinggiRata = tinggi pantulan cm, simpangan = ketidakkonsistenan cm, perDetik = tempo, bolaKabur = berapa kali bola hilang dari kamera.`;
+Arti data dribble: tinggiRata = tinggi pantulan cm, simpangan = ketidakkonsistenan cm, perDetik = tempo, bolaKabur = berapa kali bola hilang dari kamera.
+Data tembakan tambahan: pelanggaran = jenis pelanggaran (mis. travel) jika ada; langkah = jumlah langkah setelah menangkap bola (maksimal 2); kakiTolak = kaki terakhir menapak sebelum melepas bola (idealnya berlawanan dengan tangan tembak pada layup).`;
 module.exports=async(req,res)=>{
  if(req.method!=='POST')return res.status(405).json({error:'method'});
  const key=process.env.GeminiAPI;
