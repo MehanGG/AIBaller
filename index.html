@@ -222,13 +222,13 @@ async function startDrill(id){
  const v=S.v=$('#v'),cv=S.cv=$('#c');S.ctx=cv.getContext('2d');try{await document.documentElement.requestFullscreen();await screen.orientation.lock('landscape')}catch{}
  try{await openCam()}
  catch{return $('#msg').textContent='Kamera tidak bisa dibuka. Izinkan akses kamera dan buka lewat HTTPS.'}
- try{if(!window.cocoSsd){await load('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');await load('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js')}S.model=await cocoSsd.load({base:'lite_mobilenet_v2'})}
+ try{await loadModel();toast('Model: '+S.eng)}
  catch{return $('#msg').textContent='Model gagal dimuat. Cek koneksi internet lalu coba lagi.'}
  if(S.d.fw){try{if(!window.poseDetection)await load('https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js');S.pose=await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet,{modelType:'SinglePose.Lightning'})}catch{S.pose=null;toast('Analisis kaki tidak tersedia')}}
  if(S.d.m==='dribble'){S.phase='ready';$('#msg').textContent='Pegang bola dalam bingkai kamera, lalu tekan Mulai.';pan()}
  else if(opt.auto){S.phase='auto';S.ts=S.t1=performance.now();$('#msg').textContent='Arahkan kamera ke ring dan tahan diam.';if(opt.vis)aiRing()}
  else{S.phase='cal';$('#msg').textContent='Ketuk sisi kiri ring di layar.'}
- cv.onclick=e=>{if(S.phase!=='cal')return;const r=cv.getBoundingClientRect(),k=Math.min(r.width/cv.width,r.height/cv.height),p={x:(e.clientX-r.left-(r.width-cv.width*k)/2)/k,y:(e.clientY-r.top-(r.height-cv.height*k)/2)/k};S.taps.push(p);
+ cv.onclick=e=>{const r=cv.getBoundingClientRect(),k=Math.min(r.width/cv.width,r.height/cv.height),p={x:(e.clientX-r.left-(r.width-cv.width*k)/2)/k,y:(e.clientY-r.top-(r.height-cv.height*k)/2)/k};if(S.phase!=='cal'){if(S.phase==='ready'||S.phase==='run'){const d=S.per?S.per.h*.15:S.cv.width*.06;S.seed={x:p.x,y:p.y,d,t:performance.now()};S.sd=d;toast('Bola ditandai')}return}S.taps.push(p);
   if(S.taps.length===1)$('#msg').textContent='Sekarang ketuk sisi kanan ring.';
   else{const[a,b]=S.taps;S.rim={x:(a.x+b.x)/2,y:(a.y+b.y)/2,w:Math.max(Math.abs(a.x-b.x),12)};S.phase='ready';$('#msg').textContent='Ring terkunci. Taruh HP diam, lalu tekan Mulai.';pan()}};
  loop()}
@@ -237,7 +237,7 @@ function pickBall(p,ox,oy,k){const H=S.per?S.per.h:0,l=S.trail[S.trail.length-1]
  return p.filter(o=>BALLISH.includes(o.class)&&o.score>(o.class==='sports ball'?.12:.3)).map(o=>{const w=o.bbox[2]*k,h=o.bbox[3]*k,x=ox+(o.bbox[0]+o.bbox[2]/2)*k,y=oy+(o.bbox[1]+o.bbox[3]/2)*k;let sc=o.score+(o.class==='sports ball'?.3:0);
   if(w/h<.6||w/h>1.6)sc-=1;if(S.sd&&(w<S.sd*.5||w>S.sd*1.8))sc-=.5;if(H&&(w>H*.35||w<H*.04))sc-=1;if(l&&now-l.t<800)sc+=Math.max(0,.5-Math.hypot(x-l.x,y-l.y)/(S.cv.width*.5));return{x,y,d:w,h,sc}}).filter(o=>o.sc>.2).sort((a,b)=>b.sc-a.sc)[0]||null}
 async function roiBall(){const l=S.trail[S.trail.length-1],R=S.rim,pe=S.per,now=performance.now(),list=[];
- if(l&&now-l.t<900)list.push([l.x,l.y,Math.max(l.d*8,160)]);
+ if(l&&now-l.t<900)list.push([l.x,l.y,Math.max(l.d*8,160)]);else if(S.seed&&now-S.seed.t<5000)list.push([S.seed.x,S.seed.y,Math.max(S.seed.d*8,160)]);
  if(pe&&now-pe.t<1500)list.push([pe.x,pe.y+pe.h*.1,pe.h*1.25]);
  if(R)list.push([R.x,R.y,R.w*5]);
  for(const[cx,cy,s0]of list.slice(0,2)){const sz=Math.min(s0,S.cv.height,S.cv.width),x0=clamp(cx-sz/2,0,S.cv.width-sz),y0=clamp(cy-sz/2,0,S.cv.height-sz),c=S.rc||(S.rc=document.createElement('canvas'));
@@ -270,6 +270,13 @@ function qc(now){if(now-(S.qT||0)<700)return;S.qT=now;const c=S.qc||(S.qc=docume
  const d=x.getImageData(0,0,64,36).data,cur=new Uint8Array(2304),pv=S.qp;let L=0,df=0;
  for(let i=0;i<2304;i++){const y=d[i*4]*.3+d[i*4+1]*.59+d[i*4+2]*.11;cur[i]=y;L+=y;if(pv)df+=Math.abs(y-pv[i])}
  S.qp=cur;L/=2304;df/=2304;S.tip=L<55?'Ruangan terlalu gelap. Nyalakan lampu atau pindah ke tempat terang.':df>14?'HP bergerak. Taruh di tripod atau sandaran supaya diam.':opt.cam==='user'?'Kamera depan kualitasnya rendah. Kamera belakang lebih akurat.':''}
+async function loadModel(){
+ const V='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14',cls=['sports ball','person','orange','apple','frisbee','clock','donut','bowl'];
+ try{const M=await import(V+'/vision_bundle.mjs'),fs=await M.FilesetResolver.forVisionTasks(V+'/wasm');let mp;
+  for(const dl of['GPU','CPU']){try{mp=await M.ObjectDetector.createFromOptions(fs,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/float32/1/efficientdet_lite2.tflite',delegate:dl},scoreThreshold:.1,maxResults:10,runningMode:'IMAGE',categoryAllowlist:cls});break}catch{}}
+  if(!mp)throw 0;S.mp=mp;S.model={detect:async x=>mp.detect(x).detections.map(d=>({class:d.categories[0].categoryName,score:d.categories[0].score,bbox:[d.boundingBox.originX,d.boundingBox.originY,d.boundingBox.width,d.boundingBox.height]}))};S.eng='EfficientDet-Lite2';return}catch{}
+ if(!window.cocoSsd){await load('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');await load('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js')}
+ S.model=await cocoSsd.load({base:'lite_mobilenet_v2'});S.eng='COCO-SSD'}
 async function openCam(){S.stream?.getTracks().forEach(t=>t.stop());S.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:opt.cam||'environment',width:{ideal:1280},height:{ideal:720}},audio:false});S.v.srcObject=S.stream;await S.v.play();S.cv.width=S.v.videoWidth;S.cv.height=S.v.videoHeight}
 function pan(){const pn=$('#pn');if(!pn)return;const dr=S.d.m==='dribble',m=S.shots.filter(x=>x.m).length,n=S.shots.length;
  if(S.phase==='ready'){pn.innerHTML='<button class="btn" data-a="go">Mulai</button>'+(dr?'':'<button class="btn alt" data-a="redo">Pilih ulang ring</button>'+(opt.auto?'<button class="btn alt" data-a="manual">Pilih manual</button>':''));return}
@@ -286,7 +293,7 @@ async function loop(){
   if(S.d.lim&&el>=S.d.lim)return finishDrill()}
  if(S.phase==='auto')autoRing(now);
  if(S.v.readyState>=2)qc(now);const ok=S.ball&&now-S.ball.t<600,bd=$('#bd');if(bd)bd.className='bd'+(ok?' ok':'');if(ok)S.seenAny=now;
- if(S.phase==='ready'){const m=$('#msg');if(m){const t=S.tip||(S.d.m==='dribble'?(ok?'Bola terdeteksi. Tekan Mulai.':'Pegang bola di depan kamera sampai titik hijau di atas menyala, lalu tekan Mulai.'):'Ring terkunci. Taruh HP diam, lalu tekan Mulai.');if(m.textContent!==t)m.textContent=t}}
+ if(S.phase==='ready'){const m=$('#msg');if(m){const t=S.tip||(S.d.m==='dribble'?(ok?'Bola terdeteksi. Tekan Mulai.':'Pegang bola di depan kamera sampai titik hijau di atas menyala, lalu tekan Mulai. Kalau tidak menyala, ketuk bolanya di layar.'):'Ring terkunci. Taruh HP diam, lalu tekan Mulai.');if(m.textContent!==t)m.textContent=t}}
  if(S.phase==='run'&&now-(S.seenAny||S.t0)>5000&&now-(S.tipT||0)>8000){S.tipT=now;say(S.tip||'Bola tidak terlihat. Pastikan bola dan badanmu masuk bingkai dan cahaya cukup.',true)}
  draw();S.raf=requestAnimationFrame(loop)}
 function track(b){const R=S.rim,n=S.trail.length,last=S.trail[n-2],dist=Math.hypot(b.x-R.x,b.y-R.y),zone=R.w*2.2,t=performance.now();if(t<S.cool)return;
@@ -297,7 +304,7 @@ function resolve(m){const pd=S.F&&S.F.pend&&performance.now()-S.F.pend.t<3500?S.
  const rd=f*.457/R.w,bd=f*.24/Math.max(r.d,6),dx=((r.x-W/2)*bd-(R.x-W/2)*rd)/f,dz=rd-bd;
  S.shots.push({m,fr:opt.vis&&S.fb.length?S.fb.reduce((q,f)=>!q||Math.abs(f.t-r.t)<Math.abs(q.t-r.t)?f:q,null).u:undefined,...(pd?{v:pd.viol,steps:pd.n,foot:pd.foot}:{}),x:clamp(75+dx*10,5,145),y:clamp(124-dz*10,6,136),t:+((performance.now()-r.t)/1000).toFixed(2),arc:+((R.y-Math.min(...S.trail.map(q=>q.y)))/R.w).toFixed(1),dx:+((a.np.x-R.x)/R.w).toFixed(2)});pan();if(opt.coach&&S.shots.length%3===0&&S.shots.length<S.d.max)coachShots();
  if(S.shots.length>=S.d.max)finishDrill()}
-function draw(){const c=S.ctx,R=S.rim;if(opt.dbg)setTimeout(()=>{c.font=Math.round(S.cv.width/50)+'px sans-serif';c.lineWidth=2;[...(S.dets||[]),...(S.dets2||[])].filter(o=>o.score>.2).forEach(o=>{const[a,b,w,h]=o.bbox;c.strokeStyle=c.fillStyle=BALLISH.includes(o.class)?'#ffd400':o.class==='person'?'#4aa3ff':'#999';c.strokeRect(a,b,w,h);c.fillText(o.class+' '+Math.round(o.score*100),a,b-4)});if(S.roi){c.strokeStyle='#0f0';c.strokeRect(S.roi[0],S.roi[1],S.roi[2],S.roi[3])}},0);c.clearRect(0,0,S.cv.width,S.cv.height);c.lineWidth=3;if(S.cand&&S.phase==='auto'){c.strokeStyle='#ffd400';c.strokeRect(S.cand.x-S.cand.w/2,S.cand.y-S.cand.h/2,S.cand.w,S.cand.h)}
+function draw(){const c=S.ctx,R=S.rim;if(opt.dbg)setTimeout(()=>{c.font=Math.round(S.cv.width/50)+'px sans-serif';c.lineWidth=2;c.fillStyle='#fff';c.fillText(S.eng||'',10,40);[...(S.dets||[]),...(S.dets2||[])].filter(o=>o.score>.2).forEach(o=>{const[a,b,w,h]=o.bbox;c.strokeStyle=c.fillStyle=BALLISH.includes(o.class)?'#ffd400':o.class==='person'?'#4aa3ff':'#999';c.strokeRect(a,b,w,h);c.fillText(o.class+' '+Math.round(o.score*100),a,b-4)});if(S.roi){c.strokeStyle='#0f0';c.strokeRect(S.roi[0],S.roi[1],S.roi[2],S.roi[3])}},0);c.clearRect(0,0,S.cv.width,S.cv.height);c.lineWidth=3;if(S.cand&&S.phase==='auto'){c.strokeStyle='#ffd400';c.strokeRect(S.cand.x-S.cand.w/2,S.cand.y-S.cand.h/2,S.cand.w,S.cand.h)}
  if(R){c.strokeStyle='#ff7a29';c.beginPath();c.ellipse(R.x,R.y,R.w/2,R.w/5,0,0,7);c.stroke()}
  c.strokeStyle='#3df0ff';c.beginPath();S.trail.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.stroke();
  const b=S.ball;if(b&&performance.now()-b.t<300){c.strokeStyle='#fff';c.strokeRect(b.x-b.d/2,b.y-b.h/2,b.d,b.h)}}
