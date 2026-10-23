@@ -66,7 +66,17 @@ label{display:block;color:var(--mu);font-size:14px;margin:14px 0 6px}
 html{touch-action:manipulation}*{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}input{-webkit-user-select:text;user-select:text}img,svg,canvas,video{-webkit-user-drag:none}
 .ls{padding-left:20px}.ls li{margin-bottom:8px}
 a.btn{text-align:center;text-decoration:none}.vid{width:100%;aspect-ratio:16/9;border:0;border-radius:12px;margin-top:8px}
-</style></head><body><div id="app"></div><div id="sess" hidden></div>
+#intro{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden;transition:opacity .45s}
+#intro.out{opacity:0;pointer-events:none}
+.iw{display:flex;flex-direction:column;align-items:center}
+.ib{width:92px;height:92px;animation:roll 1.5s cubic-bezier(.22,.8,.3,1) both}
+.gnd{width:140px;height:8px;border-radius:50%;background:#000;opacity:.55;margin-top:6px;animation:gnd 1.5s cubic-bezier(.22,.8,.3,1) both}
+.logo{font-size:56px;margin:22px 0 0;opacity:0;animation:rise .6s .95s ease-out forwards}.logo b{color:var(--or)}
+@keyframes roll{from{transform:translateX(-75vw) rotate(-720deg)}to{transform:none}}
+@keyframes gnd{from{transform:translateX(-75vw) scaleX(.6)}to{transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.ib,.gnd{animation:none}.logo{animation:none;opacity:1}}
+</style></head><body><div id="app"></div><div id="sess" hidden></div><div id="intro"><div class="iw"><svg class="ib" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#ff7a29"/><path d="M4 50h92M50 4v92M24 22c15 18 15 38 0 56M76 22c-15 18-15 38 0 56" stroke="#101311" stroke-width="4" fill="none"/></svg><div class="gnd"></div><h1 class="logo"><b>AI</b>Baller</h1></div></div>
 <script>
 const CFG={SUPABASE_URL:'https://ifgtsizuvxescnoorfzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_TaNz9oUIgfLl6aHMdg5Vjw_xfWBYBhP'};
 const $=s=>document.querySelector(s),app=$('#app'),sess=$('#sess');
@@ -301,5 +311,6 @@ function finishDrill(){if(S.done)return;S.done=1;const dur=S.phase==='run'?(perf
  sessions.unshift(s);persist();saveSession(s);
  sess.innerHTML=`<div class="res"><h1>${s.name}</h1>${resBody(s)}<button class="btn" data-a="fin">Lihat riwayat</button></div>`}
 document.addEventListener('contextmenu',e=>e.preventDefault());['gesturestart','gesturechange','gestureend'].forEach(n=>document.addEventListener(n,e=>e.preventDefault()));document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
+(()=>{const i=$('#intro');if(!i)return;const end=()=>{i.classList.add('out');setTimeout(()=>i.remove(),500)};setTimeout(end,matchMedia('(prefers-reduced-motion:reduce)').matches?900:2800)})();
 init();
 </script></body></html>
