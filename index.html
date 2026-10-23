@@ -76,6 +76,7 @@ a.btn{text-align:center;text-decoration:none}.vid{width:100%;aspect-ratio:16/9;b
 @keyframes gnd{from{transform:translateX(-75vw) scaleX(.6)}to{transform:none}}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.ib,.gnd{animation:none}.logo{animation:none;opacity:1}}
+.dot.vio{background:#ffd400}
 </style></head><body><div id="app"></div><div id="sess" hidden></div><div id="intro"><div class="iw"><svg class="ib" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#ff7a29"/><path d="M4 50h92M50 4v92M24 22c15 18 15 38 0 56M76 22c-15 18-15 38 0 56" stroke="#101311" stroke-width="4" fill="none"/></svg><div class="gnd"></div><h1 class="logo"><b>AI</b>Baller</h1></div></div>
 <script>
 const CFG={SUPABASE_URL:'https://ifgtsizuvxescnoorfzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_TaNz9oUIgfLl6aHMdg5Vjw_xfWBYBhP'};
@@ -115,6 +116,7 @@ const DRILLS=[
 ['speed','Dribble kecepatan','Dribble secepat mungkin tanpa kehilangan bola.','Dribble pendek dan keras dengan pergelangan tangan, jaga kepala tetap tegak.',0],
 ['dweak','Dribble tangan lemah','Dribble hanya dengan tangan non-dominan.','Pakai tangan non-dominanmu saja, jaga ritme sama dengan tangan dominan.',0]]
 .forEach(([id,n,d,tip,mv])=>DRILLS.push({id,c:'dribble',m:'dribble',mv,n,d,tip,max:9999,lim:30,q:n+' basketball dribble tutorial'}));
+DRILLS.forEach(d=>{if(d.c==='finish')d.fw=1});
 const VID={cross:'4BI0-6gP5mE',dcross:'6jdyzKk8AVE',legs:'xTlmMs3dugc',back:'xF-L5oljxaM',spin:'bGf-iiVYh7U',fig8:'q-tg_pGEXfU',hesi:'r-rwRbb9XYE',inout:'xF-L5oljxaM',snatch:'uXtNeTislto',low:'2Wuo3RfnO2M',dweak:'q-tg_pGEXfU',d30:'k4yuKrQKNUY',d60:'2Wuo3RfnO2M',d100:'k4yuKrQKNUY',
 ft:'euM-9k-t1Qc',close:'euM-9k-t1Qc',sprint:'euM-9k-t1Qc',mid:'317vMvqlE7w',step:'317vMvqlE7w',three:'aWuh9lNkMk8',corner:'aWuh9lNkMk8',lay:'Pnb3aI-nkz8',fin60:'aWuh9lNkMk8',euro:'eHuggtdRLHU',float:'cnlqCsj_5WY'};
 const VQ={ft:'basketball free throw tutorial',close:'basketball close range shooting tutorial',mid:'mid range jump shot tutorial',three:'three point shooting form tutorial',sprint:'basketball shooting drill',weak:'weak hand layup drill',d30:'pound dribble basketball drill',d60:'basketball dribbling drill',d100:'basketball dribbling drill beginners',lay:'layup tutorial',fin60:'basketball finishing drill',bank:'bank shot basketball tutorial',step:'step back jumper tutorial',corner:'corner three shooting tutorial',euro:'euro step tutorial',float:'floater tutorial basketball',rev:'reverse layup tutorial',hook:'hook shot tutorial basketball'};
@@ -123,7 +125,7 @@ const OB=[{t:'Ukuran badanmu',s:'Dipakai untuk menyesuaikan latihan.',k:'body'},
 {t:'Posisi main',k:'pos',o:[['PG','Point guard'],['SG','Shooting guard'],['SF','Small forward'],['PF','Power forward'],['C','Center']]},
 {t:'Tangan dominan',k:'hand',o:[['R','Kanan'],['L','Kiri']]},
 {t:'Mau fokus ke mana?',s:'Boleh pilih lebih dari satu.',k:'focus',m:1,o:[['shoot','Shooting'],['dribble','Dribbling'],['defense','Defense']]}];
-const courtSVG=(sh=[])=>`<svg viewBox="0 0 150 140" class="court"><g fill="none" stroke="#e9eee3" stroke-opacity=".6" stroke-width="1.2"><rect x="1" y="1" width="148" height="138"/><rect x="50.5" y="82" width="49" height="57"/><path d="M57 82a18 18 0 0 1 36 0"/><path d="M9 139V110A67.5 67.5 0 0 1 141 110V139"/><circle cx="75" cy="124" r="2.5" stroke="#ff7a29"/></g>${sh.map(s=>`<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="3.6" fill="${s.m?'#3ddc84':'#ff5a4d'}" stroke="#101311" stroke-width=".8"/>`).join('')}</svg>`;
+const courtSVG=(sh=[])=>`<svg viewBox="0 0 150 140" class="court"><g fill="none" stroke="#e9eee3" stroke-opacity=".6" stroke-width="1.2"><rect x="1" y="1" width="148" height="138"/><rect x="50.5" y="82" width="49" height="57"/><path d="M57 82a18 18 0 0 1 36 0"/><path d="M9 139V110A67.5 67.5 0 0 1 141 110V139"/><circle cx="75" cy="124" r="2.5" stroke="#ff7a29"/></g>${sh.map(s=>`<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="3.6" fill="${s.m?'#3ddc84':s.v?'#ffd400':'#ff5a4d'}" stroke="#101311" stroke-width=".8"/>`).join('')}</svg>`;
 const toast=m=>{const t=document.createElement('div');t.id='toast';t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),1800)};
 const persist=()=>{LS.set('profile',profile);LS.set('sessions',sessions.slice(0,100))};
 async function cloud(fn){if(!sb||!user)return;try{await fn()}catch(e){console.warn(e)}}
@@ -134,7 +136,7 @@ async function init(){
  if(CFG.SUPABASE_URL&&window.supabase){sb=supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY);const{data}=await sb.auth.getSession();user=data.session?.user||null;if(user)await pull()}
  if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
  render()}
-function stats(list){const a=list.flatMap(s=>s.shots),m=a.filter(x=>x.m).length;return{n:a.length,m,p:a.length?Math.round(m/a.length*100):0}}
+function stats(list){const a=list.flatMap(s=>s.shots),m=a.filter(x=>x.m).length;return{n:a.length,m,v:a.filter(x=>x.v).length,p:a.length?Math.round(m/a.length*100):0}}
 function recs(){
  const st={};sessions.filter(s=>s.shots.length).forEach(s=>{const a=st[s.drill]||={m:0,a:0};a.a+=s.shots.length;a.m+=s.shots.filter(x=>x.m).length});
  const f=profile.focus,g=['PG','SG'].includes(profile.pos),big=['PF','C'].includes(profile.pos),offh=profile.hand==='R'?'kiri':'kanan';
@@ -177,7 +179,7 @@ function briefView(){const d=DRILLS.find(x=>x.id===brief),dr=d.m==='dribble',B=d
  vq=d.q||VQ[d.id]||d.n+' basketball tutorial',vi=d.vid||VID[d.id],vid=vi?`<iframe class="vid" src="https://www.youtube-nocookie.com/embed/${vi}?rel=0&playsinline=1" allow="fullscreen; picture-in-picture; encrypted-media" allowfullscreen loading="lazy"></iframe><p class="sub" style="margin-top:6px"><a href="https://www.youtube.com/watch?v=${vi}" target="_blank" rel="noopener" style="color:var(--or)">Video tidak muncul? Buka di YouTube</a></p>`:`<a class="btn alt" href="https://www.youtube.com/results?search_query=${encodeURIComponent(vq)}" target="_blank" rel="noopener">Lihat contoh video</a>`,
  T=(l,on,a)=>`<button class="item" data-a="${a}"><b>${l}</b><span class="sw ${on?'on':''}"></span></button>`;
  app.innerHTML=`<button class="back" data-a="brx">Kembali</button><h1>${d.n}</h1><p class="sub">${d.d} ${tg}.</p>${vid}${d.tip?`<h2>Cara melakukannya</h2><p>${d.tip}</p>${d.mv?'<p class="sub" style="margin-top:8px">Gerakan dihitung dari perpindahan bola kiri-kanan. Jenis gerakan tidak diverifikasi AI.</p>':''}`:''}
-<h2>Yang perlu disiapkan</h2><ul class="ls">${B.prep.map(x=>`<li>${x}</li>`).join('')}</ul>
+<h2>Yang perlu disiapkan</h2><ul class="ls">${[...B.prep,...(d.fw?['Seluruh badan termasuk kaki harus masuk bingkai untuk analisis langkah dan travel']:[])].map(x=>`<li>${x}</li>`).join('')}</ul>
 <h2>Yang perlu dilakukan</h2><ol class="ls">${B.todo.map(x=>`<li>${x}</li>`).join('')}</ol>
 <h2>Kamera</h2><div class="chips"><button class="chip ${cam==='environment'?'on':''}" data-a="cam" data-v="environment">Belakang</button><button class="chip ${cam==='user'?'on':''}" data-a="cam" data-v="user">Depan</button></div>
 <div style="margin-top:18px">${dr?'':T('Auto Pick Ring (beta)',opt.auto,'auto')}${T('AI Coach',opt.coach,'coach')}</div><button class="btn" data-a="begin">Mulai</button>`}
@@ -188,8 +190,8 @@ function profView(){const p=profile,P={PG:'Point guard',SG:'Shooting guard',SF:'
 <div class="item"><span>Tinggi dan berat</span><b>${p.h} cm, ${p.w} kg</b></div><div class="item"><span>Posisi</span><b>${P[p.pos]}</b></div><div class="item"><span>Tangan dominan</span><b>${p.hand==='R'?'Kanan':'Kiri'}</b></div><div class="item"><span>Fokus</span><b>${p.focus.join(', ')}</b></div>
 <h2>Pengaturan</h2><button class="item" data-a="auto"><div><b>Auto Pick Ring<span class="beta">Beta</span></b><small>AI mencari ring sendiri, tanpa ketuk kiri dan kanan.</small></div><span class="sw ${opt.auto?'on':''}"></span></button><button class="item" data-a="coach"><div><b>AI Coach</b><small>Memberi tahu letak kesalahan tiap 3 tembakan atau 10 dribble, lewat teks dan suara.</small></div><span class="sw ${opt.coach?'on':''}"></span></button><button class="btn alt" data-a="edit">Ubah data diri</button><button class="btn alt" data-a="${user?'logout':'login2'}">${user?'Keluar':'Masuk ke akun'}</button>`}
 function resBody(s){const t=stats([s]),dur=s.dur,B=(l,v,c='')=>`<div class="item" style="display:block"><small>${l}</small><span class="num" ${c}>${v}</span></div>`;
- if(s.dr)return`<p class="sub">${s.dr.score} poin dari ${s.dr.n} dribble dalam ${fmt(dur)}.</p><div class="two">${B('Poin',s.dr.score,'style="color:var(--or)"')}${B('Dribble',s.dr.n)}${B('Bola kabur',s.dr.esc)}${s.dr.mv?B('Pindah sisi',s.dr.sw):''}${B('Kecepatan',s.dr.rate.toFixed(1)+'/dtk')}${B('Tinggi rata-rata',s.dr.h+' cm')}${B('Waktu',fmt(dur))}</div>`;
- return`<p class="sub">${t.p}% masuk dalam ${fmt(dur)}.</p><div class="two" style="margin-bottom:14px">${B('In',t.m,'style="color:var(--gr)"')}${B('Miss',t.n-t.m,'style="color:var(--rd)"')}${B('Waktu',fmt(dur))}${B('Percobaan',t.n)}</div>${courtSVG(s.shots)}<p class="sub" style="margin-top:8px">Hijau masuk, merah meleset. Lokasi adalah perkiraan dari kamera.</p>`}
+ if(s.dr)return`<p class="sub">${s.dr.score} poin dari ${s.dr.n} dribble dalam ${fmt(dur)}.</p><div class="two">${B('Poin',s.dr.score,'style="color:var(--or)"')}${B('Dribble',s.dr.n)}${B('Bola kabur',s.dr.esc)}${s.dr.mv?B('Pindah sisi',s.dr.sw):''}${s.dr.cr?B('Carry',s.dr.cr,'style="color:#ffd400"'):''}${s.dr.dd?B('Double dribble',s.dr.dd,'style="color:#ffd400"'):''}${B('Kecepatan',s.dr.rate.toFixed(1)+'/dtk')}${B('Tinggi rata-rata',s.dr.h+' cm')}${B('Waktu',fmt(dur))}</div>`;
+ return`<p class="sub">${t.p}% masuk dalam ${fmt(dur)}.</p><div class="two" style="margin-bottom:14px">${B('In',t.m,'style="color:var(--gr)"')}${B('Miss',t.n-t.m,'style="color:var(--rd)"')}${B('Waktu',fmt(dur))}${B('Percobaan',t.n)}${t.v?B('Pelanggaran',t.v,'style="color:#ffd400"'):''}</div>${courtSVG(s.shots)}<p class="sub" style="margin-top:8px">Hijau masuk, merah meleset. Lokasi adalah perkiraan dari kamera.</p>`}
 function resultView(s){app.innerHTML=`<button class="back" data-a="close">Kembali</button><h1>${s.name}</h1>${resBody(s)}`}
 const act={
  tab:v=>{tab=v;cat=null;render()},cat:v=>{if(v&&!DRILLS.some(d=>d.c===v))return toast('Segera hadir');cat=v||null;render()},
@@ -207,20 +209,21 @@ const act={
  login:async()=>{const{error}=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});if(error){authMsg='Email atau kata sandi salah.';return authView()}const{data}=await sb.auth.getSession();user=data.session.user;authMsg='';await pull();render()},
  signup:async()=>{const{data,error}=await sb.auth.signUp({email:$('#em').value,password:$('#pw').value});if(error){authMsg=error.message;return authView()}if(data.session){user=data.session.user;await pull();render()}else{authMsg='Cek email kamu untuk konfirmasi, lalu masuk.';authView()}},
  logout:async()=>{await sb.auth.signOut();user=null;profile=null;sessions=[];persist();render()},
- coach:()=>{opt.coach=!opt.coach;LS.set('set',opt);render();if(opt.coach)say('AI Coach aktif. Saya akan memberi masukan saat kamu latihan.')},flipcam:async()=>{if(!['cal','auto','ready'].includes(S.phase))return toast('Ganti kamera sebelum mulai');const prev=opt.cam||'environment';opt.cam=prev==='user'?'environment':'user';try{await openCam()}catch{opt.cam=prev;try{await openCam()}catch{}return toast('Kamera itu tidak tersedia')}LS.set('set',opt);S.trail=[];S.ball=null;if(S.d.m!=='dribble')act.redo()},auto:()=>{opt.auto=!opt.auto;LS.set('set',opt);render()},flip:v=>{const s=S.shots[v];s.m=!s.m;pan()},go:()=>{S.phase='run';S.t0=performance.now();S.dr={n:0,y:null,lo:0,hi:0,dir:0,hs:[],sc:0,esc:0,lost:0,sw:0,sg:0,ax:null};S.seen=performance.now();$('#msg').textContent=S.d.m==='dribble'?'Mulai dribble. Jaga bola tetap terlihat kamera.':'Mulai menembak. Ketuk titik jika hitungan salah.';pan()},redo:()=>{S.taps=[];S.rim=null;S.lock=0;S.phase=opt.auto?'auto':'cal';S.ts=S.t1=performance.now();$('#msg').textContent=opt.auto?'Arahkan kamera ke ring dan tahan diam.':'Ketuk sisi kiri ring di layar.';pan()},
+ coach:()=>{opt.coach=!opt.coach;LS.set('set',opt);render();if(opt.coach)say('AI Coach aktif. Saya akan memberi masukan saat kamu latihan.')},flipcam:async()=>{if(!['cal','auto','ready'].includes(S.phase))return toast('Ganti kamera sebelum mulai');const prev=opt.cam||'environment';opt.cam=prev==='user'?'environment':'user';try{await openCam()}catch{opt.cam=prev;try{await openCam()}catch{}return toast('Kamera itu tidak tersedia')}LS.set('set',opt);S.trail=[];S.ball=null;if(S.d.m!=='dribble')act.redo()},auto:()=>{opt.auto=!opt.auto;LS.set('set',opt);render()},flip:v=>{const s=S.shots[v];s.m=!s.m;pan()},go:()=>{S.phase='run';S.t0=performance.now();S.dr={n:0,y:null,lo:0,hi:0,dir:0,hs:[],sc:0,esc:0,lost:0,sw:0,sg:0,ax:null,cr:0,dd:0,lb:0,pz:0,tt:0,cv:0};S.F=S.d.fw?{n:0,hs:0,held:0,steps:[],W:{},tor:0}:null;S.seen=performance.now();$('#msg').textContent=S.d.m==='dribble'?'Mulai dribble. Jaga bola tetap terlihat kamera.':'Mulai menembak. Ketuk titik jika hitungan salah.';pan()},redo:()=>{S.taps=[];S.rim=null;S.lock=0;S.phase=opt.auto?'auto':'cal';S.ts=S.t1=performance.now();$('#msg').textContent=opt.auto?'Arahkan kamera ke ring dan tahan diam.':'Ketuk sisi kiri ring di layar.';pan()},
  finish:()=>finishDrill(),quit:()=>{stopCam();sess.hidden=true;sess.innerHTML=''},fin:()=>{sess.hidden=true;sess.innerHTML='';tab='hist';render()}};
 document.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a&&act[a.dataset.a])act[a.dataset.a](a.dataset.v)});
 /* ---- sesi latihan ---- */
 const S={};let opt=LS.get('set',{auto:false,coach:false}),brief=null;
 const load=u=>new Promise((r,j)=>{const s=document.createElement('script');s.src=u;s.onload=r;s.onerror=j;document.head.append(s)});
 async function startDrill(id){
- const d=DRILLS.find(x=>x.id===id);Object.assign(S,{d,rim:null,taps:[],shots:[],trail:[],att:null,cool:0,phase:'load',on:true,busy:0,ball:null,done:0,lock:0,cand:null,pc:null,dr:null});
+ const d=DRILLS.find(x=>x.id===id);Object.assign(S,{d,rim:null,taps:[],shots:[],trail:[],att:null,cool:0,phase:'load',on:true,busy:0,ball:null,done:0,F:null,pose:null,lock:0,cand:null,pc:null,dr:null});
  sess.hidden=false;sess.innerHTML=`<div class="stage"><video id="v" playsinline muted autoplay></video><canvas id="c"></canvas></div><div class="hud"><div class="bar"><button class="ic" data-a="quit" aria-label="Tutup">✕</button><b>${d.n}</b><button class="ic" style="margin-left:auto" data-a="flipcam" aria-label="Ganti kamera">⟲</button></div><div class="coach" id="coach" hidden></div><p class="rot">Putar HP ke landscape untuk hasil terbaik</p><p class="msg" id="msg">Membuka kamera dan memuat model...</p><div class="panel" id="pn"></div></div>`;
  const v=S.v=$('#v'),cv=S.cv=$('#c');S.ctx=cv.getContext('2d');try{await document.documentElement.requestFullscreen();await screen.orientation.lock('landscape')}catch{}
  try{await openCam()}
  catch{return $('#msg').textContent='Kamera tidak bisa dibuka. Izinkan akses kamera dan buka lewat HTTPS.'}
  try{if(!window.cocoSsd){await load('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');await load('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js')}S.model=await cocoSsd.load({base:'lite_mobilenet_v2'})}
  catch{return $('#msg').textContent='Model gagal dimuat. Cek koneksi internet lalu coba lagi.'}
+ if(S.d.fw){try{if(!window.poseDetection)await load('https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js');S.pose=await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet,{modelType:'SinglePose.Lightning'})}catch{S.pose=null;toast('Analisis kaki tidak tersedia')}}
  if(S.d.m==='dribble'){S.phase='ready';$('#msg').textContent='Pegang bola dalam bingkai kamera, lalu tekan Mulai.';pan()}
  else if(opt.auto){S.phase='auto';S.ts=S.t1=performance.now();$('#msg').textContent='Arahkan kamera ke ring dan tahan diam.'}
  else{S.phase='cal';$('#msg').textContent='Ketuk sisi kiri ring di layar.'}
@@ -228,18 +231,35 @@ async function startDrill(id){
   if(S.taps.length===1)$('#msg').textContent='Sekarang ketuk sisi kanan ring.';
   else{const[a,b]=S.taps;S.rim={x:(a.x+b.x)/2,y:(a.y+b.y)/2,w:Math.max(Math.abs(a.x-b.x),12)};S.phase='ready';$('#msg').textContent='Ring terkunci. Taruh HP diam, lalu tekan Mulai.';pan()}};
  loop()}
+const pickBall=(p,ox,oy,k)=>{const o=p.filter(o=>o.class==='sports ball'&&o.score>.15).sort((a,b)=>b.score-a.score)[0];return o?{x:ox+(o.bbox[0]+o.bbox[2]/2)*k,y:oy+(o.bbox[1]+o.bbox[3]/2)*k,d:o.bbox[2]*k,h:o.bbox[3]*k}:null};
+async function roiBall(){const l=S.trail[S.trail.length-1],R=S.rim,now=performance.now();let cx,cy,sz;
+ if(l&&now-l.t<900){cx=l.x;cy=l.y;sz=Math.max(l.d*8,160)}else if(R){cx=R.x;cy=R.y;sz=R.w*5}else return null;
+ sz=Math.min(sz,S.cv.height,S.cv.width);const x0=clamp(cx-sz/2,0,S.cv.width-sz),y0=clamp(cy-sz/2,0,S.cv.height-sz),c=S.rc||(S.rc=document.createElement('canvas'));
+ c.width=c.height=320;c.getContext('2d').drawImage(S.v,x0,y0,sz,sz,0,0,320,320);return pickBall(await S.model.detect(c,3),x0,y0,sz/320)}
+function kpm(P,n){const k=P&&P.keypoints.find(q=>q.name===n);return k&&k.score>.3?k:null}
+function viol(t){say(t,!opt.coach)}
+function foot(P,now){const F=S.F,L=kpm(P,'left_ankle'),R=kpm(P,'right_ankle'),a=kpm(P,'left_shoulder'),h=kpm(P,'left_hip');
+ F.W={l:kpm(P,'left_wrist'),r:kpm(P,'right_wrist')};if(a&&h)F.tor=Math.hypot(a.x-h.x,a.y-h.y);if(F.held&&now-(F.pbt||now)>500)relF(now);
+ if(!L||!R||!F.tor)return;const sv=(L.y-R.y)/F.tor,sg=Math.abs(sv)>.12?Math.sign(sv):0;
+ if(sg&&F.sg&&sg!==F.sg){F.steps.push({t:now,f:sg>0?'kiri':'kanan'});if(F.steps.length>6)F.steps.shift();if(F.held)F.n++}
+ if(sg)F.sg=sg}
+function fwTick(b,now){const F=S.F;if(!F.tor||!b)return;const W=[F.W.l,F.W.r].filter(Boolean);if(!W.length)return;
+ const dm=Math.min(...W.map(w=>Math.hypot(w.x-b.x,w.y-b.y))),sp=F.pb?Math.hypot(b.x-F.pb.x,b.y-F.pb.y)/Math.max(b.d,1):9;F.pb=b;F.pbt=now;
+ if(dm<Math.max(b.d*1.1,F.tor*.45)&&sp<.4){if(++F.hs>=3&&!F.held){F.held=1;F.n=0}}else F.hs=0;
+ if(F.held&&dm>Math.max(b.d*1.8,F.tor*.8))relF(now)}
+function relF(now){const F=S.F,l=F.steps[F.steps.length-1];F.held=0;F.pend={t:now,n:F.n,foot:l?l.f:'',viol:F.n>2?'travel':''};if(F.pend.viol)viol('Travel! Kamu ambil '+F.n+' langkah setelah menangkap bola. Maksimal dua langkah.')}
 async function openCam(){S.stream?.getTracks().forEach(t=>t.stop());S.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:opt.cam||'environment',width:{ideal:1280},height:{ideal:720}},audio:false});S.v.srcObject=S.stream;await S.v.play();S.cv.width=S.v.videoWidth;S.cv.height=S.v.videoHeight}
 function pan(){const pn=$('#pn');if(!pn)return;const dr=S.d.m==='dribble',m=S.shots.filter(x=>x.m).length,n=S.shots.length;
  if(S.phase==='ready'){pn.innerHTML='<button class="btn" data-a="go">Mulai</button>'+(dr?'':'<button class="btn alt" data-a="redo">Pilih ulang ring</button>');return}
  if(S.phase!=='run'){pn.innerHTML='';return}
  pn.innerHTML=dr?`<div class="big"><b id="dp">0</b><i style="font-size:20px">poin</i></div><div class="stats"><span>Dribble<b id="dn">0</b></span>${S.d.mv?'<span>Pindah sisi<b id="ds">0</b></span>':''}<span>Per detik<b id="dr">0.0</b></span><span>Tinggi (cm)<b id="dh">0</b></span><span>Waktu<b id="tm">0:00.0</b></span></div><button class="btn" data-a="finish">Selesai</button>`
- :`<div class="row"><div class="big"><b>${m}</b><i>/</i><b>${n}</b></div>${courtSVG(S.shots)}</div><div class="stats"><span>Miss<b>${n-m}</b></span><span>In<b>${m}</b></span><span>Waktu<b id="tm">0:00.0</b></span><span>Percobaan<b>${n}${S.d.max<999?'/'+S.d.max:''}</b></span></div><div class="dots">${S.shots.map((s,i)=>`<button class="dot ${s.m?'in':'out'}" data-a="flip" data-v="${i}" aria-label="Tembakan ${i+1}"></button>`).join('')}</div><button class="btn" data-a="finish">Selesai</button>`}
+ :`<div class="row"><div class="big"><b>${m}</b><i>/</i><b>${n}</b></div>${courtSVG(S.shots)}</div><div class="stats"><span>Miss<b>${n-m}</b></span><span>In<b>${m}</b></span><span>Waktu<b id="tm">0:00.0</b></span><span>Percobaan<b>${n}${S.d.max<999?'/'+S.d.max:''}</b></span></div><div class="dots">${S.shots.map((s,i)=>`<button class="dot ${s.m?'in':s.v?'vio':'out'}" data-a="flip" data-v="${i}" aria-label="Tembakan ${i+1}"></button>`).join('')}</div><button class="btn" data-a="finish">Selesai</button>`}
 async function loop(){
  if(!S.on)return;const now=performance.now();
- if(S.model&&!S.busy&&S.v.readyState>=2){S.busy=1;try{const p=await S.model.detect(S.v,6),b=p.filter(o=>o.class==='sports ball'&&o.score>.25).sort((a,b)=>b.score-a.score)[0];
-  S.ball=b?{x:b.bbox[0]+b.bbox[2]/2,y:b.bbox[1]+b.bbox[3]/2,d:b.bbox[2],h:b.bbox[3],t:performance.now()}:null;
-  if(S.ball){S.trail.push(S.ball);S.trail=S.trail.filter(q=>S.ball.t-q.t<2500);if(S.phase==='run')S.d.m==='dribble'?dribTrack(S.ball):track(S.ball)}}catch{}S.busy=0}
- if(S.phase==='run'){const el=(now-S.t0)/1000,tm=$('#tm');if(tm)tm.textContent=fmt(el);if(S.d.m==='dribble'){dribUI(el);const D=S.dr;if(D.n>0&&!D.lost&&now-S.seen>1200){D.lost=1;D.sc-=5;D.esc++;if(opt.coach)say('Bola kabur. Dribble lebih dekat ke badan.')}}
+ if(S.model&&!S.busy&&S.v.readyState>=2){S.busy=1;try{const p=await S.model.detect(S.v,6);let b=pickBall(p,0,0,1);if(!b)b=await roiBall();
+  S.ball=b?{...b,t:performance.now()}:null;
+  if(S.ball){S.trail.push(S.ball);S.trail=S.trail.filter(q=>S.ball.t-q.t<2500);if(S.phase==='run'){S.d.m==='dribble'?dribTrack(S.ball):track(S.ball);if(S.F)fwTick(S.ball,performance.now())}}if(S.pose&&S.F&&S.phase==='run'){const P=(await S.pose.estimatePoses(S.v))[0];if(P)foot(P,performance.now())}}catch{}S.busy=0}
+ if(S.phase==='run'){const el=(now-S.t0)/1000,tm=$('#tm');if(tm)tm.textContent=fmt(el);if(S.d.m==='dribble'){dribUI(el);const D=S.dr;if(D.n>0&&!D.lost&&now-S.seen>1200){D.lost=1;D.sc-=5;D.esc++;D.lb=1e15;if(opt.coach)say('Bola kabur. Dribble lebih dekat ke badan.')}}
   if(S.att&&now-S.att.t0>1800){const l=S.trail[S.trail.length-1],R=S.rim;resolve(!!l&&Math.abs(l.x-R.x)<R.w*.5&&l.y<R.y+R.w*.3&&l.y>R.y-R.w)}
   if(S.d.lim&&el>=S.d.lim)return finishDrill()}
  if(S.phase==='auto')autoRing(now);draw();S.raf=requestAnimationFrame(loop)}
@@ -247,37 +267,40 @@ function track(b){const R=S.rim,n=S.trail.length,last=S.trail[n-2],dist=Math.hyp
  if(!S.att&&dist<zone&&b.y<R.y+R.w*.8){const rel=S.trail.reduce((a,q)=>q.y>a.y?q:a,S.trail[0]);S.att={t0:t,rel,md:1e9,np:b}}
  if(S.att&&dist<S.att.md){S.att.md=dist;S.att.np=b}
  if(S.att){if(last&&last.y<R.y&&b.y>=R.y&&Math.abs(b.x-R.x)<R.w*.65)resolve(true);else if(dist>zone*1.4)resolve(false)}}
-function resolve(m){const a=S.att,R=S.rim,W=S.cv.width,f=.65*W,r=a.rel;S.att=null;S.cool=performance.now()+1500;
+function resolve(m){const pd=S.F&&S.F.pend&&performance.now()-S.F.pend.t<3500?S.F.pend:null;if(S.F)S.F.pend=null;if(pd&&pd.viol)m=false;const a=S.att,R=S.rim,W=S.cv.width,f=.65*W,r=a.rel;S.att=null;S.cool=performance.now()+1500;
  const rd=f*.457/R.w,bd=f*.24/Math.max(r.d,6),dx=((r.x-W/2)*bd-(R.x-W/2)*rd)/f,dz=rd-bd;
- S.shots.push({m,x:clamp(75+dx*10,5,145),y:clamp(124-dz*10,6,136),t:+((performance.now()-r.t)/1000).toFixed(2),arc:+((R.y-Math.min(...S.trail.map(q=>q.y)))/R.w).toFixed(1),dx:+((a.np.x-R.x)/R.w).toFixed(2)});pan();if(opt.coach&&S.shots.length%3===0&&S.shots.length<S.d.max)coachShots();
+ S.shots.push({m,...(pd?{v:pd.viol,steps:pd.n,foot:pd.foot}:{}),x:clamp(75+dx*10,5,145),y:clamp(124-dz*10,6,136),t:+((performance.now()-r.t)/1000).toFixed(2),arc:+((R.y-Math.min(...S.trail.map(q=>q.y)))/R.w).toFixed(1),dx:+((a.np.x-R.x)/R.w).toFixed(2)});pan();if(opt.coach&&S.shots.length%3===0&&S.shots.length<S.d.max)coachShots();
  if(S.shots.length>=S.d.max)finishDrill()}
 function draw(){const c=S.ctx,R=S.rim;c.clearRect(0,0,S.cv.width,S.cv.height);c.lineWidth=3;if(S.cand&&S.phase==='auto'){c.strokeStyle='#ffd400';c.strokeRect(S.cand.x-S.cand.w/2,S.cand.y-S.cand.h/2,S.cand.w,S.cand.h)}
  if(R){c.strokeStyle='#ff7a29';c.beginPath();c.ellipse(R.x,R.y,R.w/2,R.w/5,0,0,7);c.stroke()}
  c.strokeStyle='#3df0ff';c.beginPath();S.trail.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.stroke();
  const b=S.ball;if(b&&performance.now()-b.t<300){c.strokeStyle='#fff';c.strokeRect(b.x-b.d/2,b.y-b.h/2,b.d,b.h)}}
-function dribTrack(b){const D=S.dr,th=Math.max(b.d*.6,10);S.seen=performance.now();D.lost=0;
+function dribTrack(b){const D=S.dr,th=Math.max(b.d*.6,10);const nw=performance.now();S.seen=nw;D.lost=0;if(D.n>0&&!D.pz&&nw-D.lb>900)D.pz=1;{const nt=D.n>0&&D.dir<=0&&b.y-D.lo<b.d*.35;if(nt){D.tt=D.tt||nw;if(!D.cv&&nw-D.tt>450){D.cv=1;D.cr++;D.sc-=3;viol('Carry: bola terlalu lama menempel di tangan.')}}else{D.tt=0;D.cv=0}}
  D.ax=D.ax==null?b.x:D.ax+(b.x-D.ax)*.03;{const sx=b.x-D.ax,sg=Math.abs(sx)>b.d*.7?Math.sign(sx):0;if(sg&&D.sg&&sg!==D.sg){D.sw++;if(S.d.mv)D.sc+=Math.abs(sx)>b.d*1.2?10:5}if(sg)D.sg=sg}
  if(D.y==null){D.y=D.lo=D.hi=b.y;return}
  D.lo=Math.min(D.lo,b.y);D.hi=Math.max(D.hi,b.y);
  if(D.dir<=0&&b.y-D.lo>th){D.dir=1;D.hi=b.y}
  else if(D.dir>=0&&D.hi-b.y>th){if(D.dir===1){const cm=(D.hi-D.lo)/Math.max(b.d,6)*24,av=D.hs.length?D.hs.reduce((a,c)=>a+c,0)/D.hs.length:cm,dv=Math.abs(cm-av)/av,p=cm>=25&&cm<=75&&dv<.3?10:cm>=15&&cm<=95&&dv<.5?5:2;
-  D.n++;D.hs.push(cm);if(!S.d.mv)D.sc+=p;if(D.n>=S.d.max)finishDrill();else if(opt.coach&&D.n%10===0)coachDrib()}D.dir=-1;D.lo=b.y}}
+  D.n++;if(D.pz){D.dd++;D.sc-=5;D.pz=0;viol('Double dribble: dribble lagi setelah menahan bola.')}D.lb=performance.now();D.hs.push(cm);if(!S.d.mv)D.sc+=p;if(D.n>=S.d.max)finishDrill();else if(opt.coach&&D.n%10===0)coachDrib()}D.dir=-1;D.lo=b.y}}
 async function ai(kind,data,fb){if(S.cb)return;S.cb=1;
  try{const c=new AbortController(),to=setTimeout(()=>c.abort(),4500);
   const r=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,data,profile:{pos:profile.pos,hand:profile.hand,h:profile.h,w:profile.w}}),signal:c.signal});clearTimeout(to);
   const j=await r.json();say(j.text||fb)}catch{say(fb)}S.cb=0}
-function say(t){const c=$('#coach');if(c){c.textContent='Coach: '+t;c.hidden=false;clearTimeout(S.ct);S.ct=setTimeout(()=>c.hidden=true,7000)}
- try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='id-ID';speechSynthesis.speak(u)}catch{}}
+function say(t,mute){const c=$('#coach');if(c){c.textContent='Coach: '+t;c.hidden=false;clearTimeout(S.ct);S.ct=setTimeout(()=>c.hidden=true,7000)}
+ if(!mute)try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='id-ID';speechSynthesis.speak(u)}catch{}}
 function coachShots(){const L=S.shots.slice(-3),mk=L.filter(x=>x.m).length,ms=L.filter(x=>!x.m),arc=L.reduce((a,x)=>a+x.arc,0)/3,r=ms.filter(x=>x.dx>.4).length,l=ms.filter(x=>x.dx<-.4).length;let t;
- if(mk===3)t='Mantap, tiga masuk berturut-turut. Pertahankan ritme dan gerakan yang sama.';
+ if(L.some(x=>x.v))t='Ada pelanggaran '+L.find(x=>x.v).v+' di tembakan terakhir. Maksimal dua langkah setelah menangkap bola, lalu langsung tembak.';
+ else if(mk===3)t='Mantap, tiga masuk berturut-turut. Pertahankan ritme dan gerakan yang sama.';
+ else if(S.d.fw&&L.filter(x=>x.foot===(profile.hand==='R'?'kanan':'kiri')).length>=2)t='Kamu menolak dari kaki yang sama dengan tangan tembak. Untuk layup, tolak dari kaki yang berlawanan.';
  else if(r>=2)t='Dua tembakan melenceng ke kanan layar. Cek posisi siku dan luruskan follow-through ke arah ring.';
  else if(l>=2)t='Dua tembakan melenceng ke kiri layar. Cek posisi siku dan pastikan telapak tangan lurus ke ring.';
  else if(arc<2.2)t='Lengkungan tembakanmu rendah dan datar. Naikkan titik lepas dan dorong bola lebih ke atas.';
  else if(arc>7)t='Lengkungan terlalu tinggi. Kurangi tenaga dari kaki supaya bola lebih terkontrol.';
  else t=`Baru ${mk} dari 3 yang masuk, tanpa pola jelas. Jaga gerakan tetap sama di tiap tembakan.`;
- ai('tembakan',{latihan:S.d.n,tigaTerakhir:L.map(x=>({masuk:x.m,arc:x.arc,dx:x.dx,waktu:x.t})),totalTembakan:S.shots.length,totalMasuk:S.shots.filter(x=>x.m).length},t)}
+ ai('tembakan',{latihan:S.d.n,tigaTerakhir:L.map(x=>({masuk:x.m,arc:x.arc,dx:x.dx,waktu:x.t,pelanggaran:x.v||'',langkah:x.steps,kakiTolak:x.foot||''})),totalTembakan:S.shots.length,totalMasuk:S.shots.filter(x=>x.m).length},t)}
 function coachDrib(){const D=S.dr,h=D.hs.slice(-10),av=h.reduce((a,b)=>a+b,0)/h.length,sd=Math.sqrt(h.reduce((a,b)=>a+(b-av)**2,0)/h.length),rate=D.n/Math.max((performance.now()-S.t0)/1000,1);let t;
- if(D.esc>(D.escC||0)){t='Bola beberapa kali lepas dari bingkai. Dribble lebih dekat ke badan dan tahan kepala tegak.';D.escC=D.esc}
+ if(D.cr+D.dd>(D.vC||0)){t='Ada pelanggaran dribble: carry atau double dribble. Jaga bola tetap memantul tanpa ditahan.';D.vC=D.cr+D.dd}
+ else if(D.esc>(D.escC||0)){t='Bola beberapa kali lepas dari bingkai. Dribble lebih dekat ke badan dan tahan kepala tegak.';D.escC=D.esc}
  else if(av>80)t='Pantulan terlalu tinggi. Rendahkan sampai sekitar pinggang supaya lebih terkontrol.';
  else if(av<20)t='Pantulan terlalu rendah dan lemah. Dorong bola dari pergelangan tangan.';
  else if(S.d.mv&&D.sw<D.n/6)t='Perpindahan kiri-kanan masih sedikit. Lebarkan gerakan bola ke samping.';
@@ -306,7 +329,7 @@ function autoRing(now){
 function stopCam(){try{screen.orientation.unlock();document.fullscreenElement&&document.exitFullscreen()}catch{}S.on=false;cancelAnimationFrame(S.raf);S.stream?.getTracks().forEach(t=>t.stop())}
 function finishDrill(){if(S.done)return;S.done=1;const dur=S.phase==='run'?(performance.now()-S.t0)/1000:0;stopCam();
  const s={id:Date.now().toString(36),drill:S.d.id,name:S.d.n,date:Date.now(),dur,shots:S.shots},D=S.dr,bye=m=>{sess.hidden=true;sess.innerHTML='';toast(m)};
- if(S.d.m==='dribble'){if(!D||!D.n)return bye('Belum ada dribble terdeteksi');s.dr={n:D.n,score:D.sc,esc:D.esc,mv:S.d.mv?1:0,sw:D.sw,rate:D.n/Math.max(dur,1),h:Math.round(D.hs.reduce((a,b)=>a+b,0)/D.hs.length)}}
+ if(S.d.m==='dribble'){if(!D||!D.n)return bye('Belum ada dribble terdeteksi');s.dr={n:D.n,score:D.sc,esc:D.esc,mv:S.d.mv?1:0,sw:D.sw,cr:D.cr,dd:D.dd,rate:D.n/Math.max(dur,1),h:Math.round(D.hs.reduce((a,b)=>a+b,0)/D.hs.length)}}
  else if(!s.shots.length)return bye('Belum ada tembakan terdeteksi');
  sessions.unshift(s);persist();saveSession(s);
  sess.innerHTML=`<div class="res"><h1>${s.name}</h1>${resBody(s)}<button class="btn" data-a="fin">Lihat riwayat</button></div>`}
