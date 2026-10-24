@@ -3,7 +3,7 @@ const BOX='Balas hanya JSON: {"found":true atau false,"box":[ymin,xmin,ymax,xmax
 const P={
  ring:'Ini foto dari kamera di lapangan basket. Temukan ring basket: lingkaran logam (biasanya oranye atau merah) tempat bola masuk. Jangan pilih papan pantul, jaring, tiang, gawang futsal, atau benda jingga lain. Kotak harus mengelilingi cincin ringnya saja. '+BOX,
  ball:'Ini foto dari kamera latihan basket. Temukan bola basket. Warnanya bisa apa saja (termasuk kusam, abu-abu, atau pudar) dan ukurannya bisa kecil. Kalau ada beberapa bola, pilih yang paling dekat dengan pemain. Kotak harus mengelilingi bolanya saja. '+BOX,
- form:'Kamu pelatih basket. Berikut beberapa frame dari sesi latihan beserta konteksnya. Nilai bentuk gerakan yang benar-benar terlihat (siku, kaki, langkah, postur, posisi bola). Jawab dalam bahasa Indonesia, maksimal 3 poin pendek: satu hal yang sudah baik dan dua hal yang perlu diperbaiki. Kalau gambar kurang jelas, katakan apa adanya dan jangan mengarang.'};
+ form:'Kamu pelatih basket. Berikut beberapa frame dari sesi latihan beserta konteksnya. Nilai bentuk gerakan yang benar-benar terlihat (siku, kaki, langkah, postur, posisi bola; untuk latihan defense atau athleticism: posisi stance, lutut, punggung, pendaratan). Jawab dalam bahasa Indonesia, maksimal 3 poin pendek: satu hal yang sudah baik dan dua hal yang perlu diperbaiki. Kalau gambar kurang jelas, katakan apa adanya dan jangan mengarang.'};
 module.exports=async(req,res)=>{
  if(req.method!=='POST')return res.status(405).json({error:'method'});
  const key=process.env.GeminiAPI;if(!key)return res.status(500).json({error:'GeminiAPI belum diatur di Vercel'});
