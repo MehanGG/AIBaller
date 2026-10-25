@@ -1,1 +1,181 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#101311"><title>AIBaller Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Figtree:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#101311;--s1:#181e1a;--s2:#212923;--ln:#2e382f;--tx:#eef1e8;--mu:#8d998d;--or:#ff7a29;--gr:#3ddc84;--rd:#ff5a4d;color-scheme:dark}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%;color:var(--tx);font:16px/1.5 Figtree,system-ui,sans-serif}
+body{background:radial-gradient(900px 420px at 85% -10%,#ff7a2924,transparent 60%),radial-gradient(700px 380px at -10% 8%,#3ddc8416,transparent 60%),var(--bg);background-attachment:fixed;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button,a{font:inherit;color:inherit;cursor:pointer}button{background:none;border:0}a{text-decoration:none}
+:focus-visible{outline:2px solid var(--or);outline-offset:2px}
+h1,h2,.big b{font-family:'Big Shoulders Display','Arial Narrow',Impact,sans-serif;font-weight:800;line-height:1}
+.wrap{max-width:760px;margin:auto;padding:18px 18px 70px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px}.brand svg{width:30px;height:30px}
+.tag{font-size:11px;letter-spacing:.12em;font-weight:800;background:var(--or);color:#1a0d02;border-radius:7px;padding:2px 8px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.ghost{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ln);background:#181e1acc;border-radius:12px;padding:9px 14px;font-weight:600;font-size:14px;transition:.15s}
+.ghost:hover{border-color:var(--or);color:var(--or)}
+.card{background:linear-gradient(180deg,#1b221d,#161b17);border:1px solid var(--ln);border-radius:22px;padding:22px;margin-bottom:16px;animation:up .45s cubic-bezier(.2,.9,.3,1) both}
+.card:nth-of-type(2){animation-delay:.07s}.card:nth-of-type(3){animation-delay:.14s}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--or);font-weight:800;margin-bottom:10px}
+h1{font-size:40px;margin-bottom:10px}h2{font-size:26px}
+p.sub{color:var(--mu)}
+label{display:block;color:var(--mu);font-size:14px;margin:18px 0 6px}
+input,textarea{width:100%;font:inherit;color:var(--tx);background:#0f1311;border:1px solid var(--ln);border-radius:12px;padding:14px;transition:.15s}
+input:focus,textarea:focus{outline:0;border-color:var(--or);box-shadow:0 0 0 3px #ff7a2926}
+textarea{resize:none;height:84px}
+.cnt{text-align:right;color:var(--mu);font-size:12px;margin-top:4px}
+.cta{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:16px;padding:17px;border-radius:16px;font-weight:800;font-size:17px;color:#1a0d02;background:linear-gradient(135deg,#ff7a29,#ffa24d);box-shadow:0 10px 28px #ff7a2933;transition:transform .12s,box-shadow .2s}
+.cta:hover{box-shadow:0 14px 34px #ff7a2955}.cta:active{transform:scale(.985)}
+.cta[disabled]{opacity:.7;cursor:default}
+.cta svg{width:20px;height:20px}
+.spin{width:18px;height:18px;border-radius:50%;border:3px solid #1a0d0233;border-top-color:#1a0d02;animation:spn .7s linear infinite}@keyframes spn{to{transform:rotate(360deg)}}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pill{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;padding:5px 12px;border-radius:99px;background:var(--s2);color:var(--mu)}
+.pill i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.pill.run{color:var(--or);background:#ff7a2918}.pill.run i{animation:pl 1.2s infinite}
+.pill.ok{color:var(--gr);background:#3ddc8418}
+@keyframes pl{50%{opacity:.25}}
+.big{display:flex;align-items:baseline;gap:10px;margin:14px 0 12px;flex-wrap:wrap}.big b{font-size:72px}.big span{color:var(--mu)}.big i{font-style:normal;color:var(--tx);font-weight:700}
+.bar{height:12px;border-radius:99px;background:var(--s2);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#ff7a29,#3ddc84);transition:width .8s cubic-bezier(.2,.9,.3,1)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.kv div{background:#0f1311;border:1px solid var(--ln);border-radius:14px;padding:12px 14px;min-width:0}
+.kv small{display:block;color:var(--mu);font-size:12px}.kv b{display:block;font-weight:700;word-break:break-word}
+.sk{display:inline-block;min-width:60px;height:1em;border-radius:6px;background:linear-gradient(90deg,var(--s2),#2b352d,var(--s2));background-size:200% 100%;animation:shm 1.2s linear infinite;color:transparent}@keyframes shm{to{background-position:-200% 0}}
+.err{color:var(--rd);font-size:14px;margin-top:12px;min-height:1.2em}
+.login{min-height:100vh;display:grid;place-items:center;padding:20px}
+.login .card{width:100%;max-width:400px;padding:28px 24px}
+.login .logo{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:18px}.login .logo svg{width:64px;height:64px}
+.login h1{text-align:center;font-size:36px}.login p.sub{text-align:center;font-size:14px}
+.pw{position:relative}.pw button{position:absolute;right:6px;top:50%;transform:translateY(-50%);color:var(--mu);font-size:13px;font-weight:700;padding:8px 10px}
+.mdl{position:fixed;inset:0;z-index:50;background:#000b;display:grid;place-items:center;padding:20px;animation:fd .2s both}
+.mdl .box{width:100%;max-width:400px;background:var(--s1);border:1px solid var(--ln);border-radius:22px;padding:24px;animation:pop .25s cubic-bezier(.2,.9,.3,1) both}
+.mdl h2{margin-bottom:8px}.mdl .two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.mdl .two button{padding:14px;border-radius:13px;font-weight:800;background:var(--s2)}.mdl .two .go{background:var(--or);color:#1a0d02}
+@keyframes fd{from{opacity:0}}@keyframes pop{from{opacity:0;transform:scale(.94)}}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,30px);background:#212923;border:1px solid var(--ln);padding:12px 18px;border-radius:99px;font-size:14px;font-weight:600;z-index:70;opacity:0;transition:.3s;pointer-events:none;max-width:90vw;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}#toast.bad{border-color:var(--rd);color:var(--rd)}#toast.good{border-color:var(--gr)}
+pre{background:#0b0e0c;border:1px solid var(--ln);border-radius:12px;padding:14px;font-size:12px;line-height:1.5;overflow:auto;max-height:260px;margin-top:12px;-webkit-user-select:text;user-select:text;color:#cfd6c9}
+.steps{margin:10px 0 0 20px;color:var(--mu)}.steps li{margin-bottom:4px}
+@media (max-width:480px){h1{font-size:34px}.big b{font-size:58px}.kv{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body>
+<div id="root"></div><div id="toast"></div>
+<script type="text/plain" id="sqlsrc">-- AIBaller: sistem update + admin panel
+-- Jalankan SEKALI di Supabase > SQL Editor. Aman dijalankan ulang.
 
+-- 1. Penanda admin (satu-satunya akun yang boleh set update)
+create or replace function public.is_aib_admin() returns boolean
+language sql stable as $$
+  select lower(coalesce(auth.jwt()->>'email','')) = 'mehangg10@gmail.com'
+$$;
+
+-- 2. Versi update yang sedang aktif (satu baris saja)
+create table if not exists public.app_update (
+  id int primary key default 1 check (id = 1),
+  version bigint not null default 0,
+  note text,
+  updated_at timestamptz not null default now(),
+  updated_by text
+);
+insert into public.app_update (id, version) values (1, 0) on conflict (id) do nothing;
+
+alter table public.app_update enable row level security;
+drop policy if exists "app_update read" on public.app_update;
+create policy "app_update read" on public.app_update for select using (true);
+drop policy if exists "app_update admin write" on public.app_update;
+create policy "app_update admin write" on public.app_update for update
+  using (public.is_aib_admin()) with check (public.is_aib_admin());
+
+-- 3. Catatan akun mana yang sudah update
+create table if not exists public.update_acks (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  version bigint not null,
+  at timestamptz not null default now(),
+  primary key (user_id, version)
+);
+alter table public.update_acks enable row level security;
+drop policy if exists "acks insert own" on public.update_acks;
+create policy "acks insert own" on public.update_acks for insert with check (auth.uid() = user_id);
+drop policy if exists "acks update own" on public.update_acks;
+create policy "acks update own" on public.update_acks for update
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "acks read" on public.update_acks;
+create policy "acks read" on public.update_acks for select
+  using (auth.uid() = user_id or public.is_aib_admin());
+
+-- 4. Admin boleh menghitung jumlah akun (tabel profiles)
+drop policy if exists "profiles admin read" on public.profiles;
+create policy "profiles admin read" on public.profiles for select using (public.is_aib_admin());
+
+-- 5. Realtime supaya tombol update muncul langsung (opsional, ada polling cadangan)
+do $$ begin
+  alter publication supabase_realtime add table public.app_update;
+exception when duplicate_object then null; when undefined_object then null;
+end $$;
+</script>
+<script>
+const CFG={url:'https://ifgtsizuvxescnoorfzn.supabase.co',key:'sb_publishable_TaNz9oUIgfLl6aHMdg5Vjw_xfWBYBhP'},ADMIN='mehangg10@gmail.com';
+const sb=supabase.createClient(CFG.url,CFG.key),$=s=>document.querySelector(s),root=$('#root');
+let timer=null,sess=null;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const BALL='<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#ff7a29"/><path d="M4 50h92M50 4v92M17 17c20 20 20 46 0 66M83 17c-20 20-20 46 0 66" fill="none" stroke="#1a0d02" stroke-width="4" stroke-linecap="round"/></svg>';
+let tt;function toast(m,k){const t=$('#toast');t.textContent=m;t.className='on '+(k||'');clearTimeout(tt);tt=setTimeout(()=>t.className='',3200)}
+const isAdmin=u=>!!u&&(u.email||'').toLowerCase()===ADMIN;
+function rel(ms){const s=Math.max(0,(Date.now()-ms)/1000);if(s<60)return'baru saja';if(s<3600)return Math.floor(s/60)+' menit lalu';if(s<86400)return Math.floor(s/3600)+' jam lalu';return Math.floor(s/86400)+' hari lalu'}
+
+function viewLogin(msg){clearInterval(timer);root.innerHTML=`<div class="login"><div class="card"><div class="logo">${BALL}<div class="tag">ADMIN</div></div><h1>Masuk admin</h1><p class="sub">Panel khusus pengelola AIBaller.</p>
+<label for="em">Email</label><input id="em" type="email" autocomplete="username" inputmode="email" placeholder="email admin">
+<label for="pw">Kata sandi</label><div class="pw"><input id="pw" type="password" autocomplete="current-password" placeholder="kata sandi"><button id="eye" type="button">Lihat</button></div>
+<button class="cta" id="go"><span>Masuk</span></button><p class="err" id="er">${esc(msg||'')}</p></div></div>`;
+ const go=async()=>{const b=$('#go'),e=$('#em').value.trim(),p=$('#pw').value;if(!e||!p){$('#er').textContent='Isi email dan kata sandi.';return}b.disabled=true;b.innerHTML='<i class="spin"></i>';$('#er').textContent='';
+  const{data,error}=await sb.auth.signInWithPassword({email:e,password:p});
+  if(error){b.disabled=false;b.innerHTML='<span>Masuk</span>';$('#er').textContent='Email atau kata sandi salah.';return}route(data.session)};
+ $('#go').onclick=go;$('#pw').onkeydown=e=>{if(e.key==='Enter')go()};$('#em').onkeydown=e=>{if(e.key==='Enter')$('#pw').focus()};
+ $('#eye').onclick=()=>{const i=$('#pw'),h=i.type==='password';i.type=h?'text':'password';$('#eye').textContent=h?'Tutup':'Lihat'}}
+
+function viewDenied(u){clearInterval(timer);root.innerHTML=`<div class="login"><div class="card"><div class="logo">${BALL}</div><h1>Bukan akun admin</h1><p class="sub">${esc(u.email)} tidak punya akses ke panel ini.</p>
+<button class="cta" id="out">Keluar dan ganti akun</button><a class="ghost" href="/" style="display:flex;justify-content:center;margin-top:10px">Kembali ke aplikasi</a></div></div>`;
+ $('#out').onclick=async()=>{await sb.auth.signOut();route(null)}}
+
+function viewDash(u){root.innerHTML=`<div class="wrap">
+<header class="top"><div class="brand">${BALL}<span>AIBaller</span><span class="tag">ADMIN</span></div><div class="acts"><a class="ghost" href="/#prof">← Profil utama</a><button class="ghost" id="out">Keluar</button></div></header>
+<section class="card"><div class="eyebrow">Set Update</div><h1>Kirim update ke semua akun</h1><p class="sub">Semua pengguna akan melihat tombol Update. Saat ditekan, aplikasi refresh otomatis dan tombolnya hilang untuk akun yang sudah update.</p>
+<label for="note">Catatan update (opsional, tampil di tombol)</label><textarea id="note" maxlength="140" placeholder="Contoh: Fitur record dan perbaikan deteksi bola"></textarea><div class="cnt"><span id="cn">0</span>/140</div>
+<button class="cta" id="set"><svg viewBox="0 0 24 24" fill="none" stroke="#1a0d02" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg><span>Set Update</span></button></section>
+<section class="card" id="stat"><div class="row"><div class="eyebrow" style="margin:0">Status update</div><span class="pill" id="pl"><i></i><span>memuat</span></span></div>
+<div class="big"><b id="ack"><span class="sk">00</span></b><span><i id="tot">–</i> akun sudah update</span></div><div class="bar"><i id="pb"></i></div>
+<div class="kv"><div><small>Terakhir di-set</small><b id="when"><span class="sk">memuat memuat</span></b></div><div><small>Catatan</small><b id="nt">–</b></div></div></section>
+<section class="card" id="setup" hidden><div class="eyebrow">Setup database</div><h2 style="margin-bottom:8px">Tabel update belum siap</h2><p class="sub">Jalankan SQL di bawah sekali saja, lalu muat ulang halaman ini.</p>
+<ol class="steps"><li>Buka Supabase, menu SQL Editor</li><li>Tempel SQL, lalu tekan Run</li><li>Muat ulang halaman ini</li></ol><button class="ghost" id="cp" style="margin-top:14px">Salin SQL</button><pre id="sqlpre"></pre></section></div>`;
+ $('#out').onclick=async()=>{await sb.auth.signOut();route(null)};
+ const n=$('#note'),c=()=>$('#cn').textContent=n.value.length;n.oninput=c;
+ $('#set').onclick=()=>confirmSet(u,n,c);
+ $('#sqlpre').textContent=$('#sqlsrc').textContent.trim();$('#cp').onclick=async()=>{try{await navigator.clipboard.writeText($('#sqlsrc').textContent.trim());toast('SQL disalin','good')}catch{toast('Tidak bisa menyalin, salin manual dari kotak','bad')}};
+ stats();clearInterval(timer);timer=setInterval(stats,8000)}
+
+function confirmSet(u,n,c){const m=document.createElement('div');m.className='mdl';m.innerHTML=`<div class="box"><h2>Kirim update ke semua akun?</h2><p class="sub">Semua akun akan melihat tombol Update sampai mereka menekannya.</p><div class="two"><button id="no">Batal</button><button class="go" id="yes">Ya, kirim</button></div></div>`;document.body.appendChild(m);
+ m.onclick=e=>{if(e.target===m)m.remove()};$('#no').onclick=()=>m.remove();
+ $('#yes').onclick=async()=>{m.remove();const b=$('#set');b.disabled=true;const old=b.innerHTML;b.innerHTML='<i class="spin"></i><span>Mengirim...</span>';
+  const note=n.value.trim().slice(0,140),{data,error}=await sb.from('app_update').update({version:Date.now(),note:note||null,updated_at:new Date().toISOString(),updated_by:u.email}).eq('id',1).select();
+  b.disabled=false;b.innerHTML=old;
+  if(error||!data||!data.length){toast(error?error.message:'Gagal. Tabel belum siap atau akses ditolak.','bad');if(!data||!data.length)$('#setup').hidden=false;return}
+  toast('Update dikirim ke semua akun','good');n.value='';c();stats()}}
+
+async function stats(){if(!$('#stat'))return;
+ const r=await sb.from('app_update').select('version,note,updated_at').eq('id',1).maybeSingle();
+ if(r.error||!r.data){$('#setup').hidden=false;$('#pl').className='pill';$('#pl span').textContent='belum siap';$('#ack').textContent='0';$('#tot').textContent='–';$('#when').textContent='–';return}
+ $('#setup').hidden=true;const v=Number(r.data.version)||0;
+ const[a,t]=await Promise.all([sb.from('update_acks').select('user_id',{count:'exact',head:true}).eq('version',v),sb.from('profiles').select('id',{count:'exact',head:true})]);
+ const ack=v?(a.count||0):0,tot=Math.max(t.count||0,ack);
+ $('#ack').textContent=ack;$('#tot').textContent='dari '+tot;$('#pb').style.width=(tot?Math.round(ack/tot*100):0)+'%';
+ $('#when').textContent=v?new Date(v).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})+' · '+rel(v):'Belum pernah';
+ $('#nt').textContent=v?(r.data.note||'Tanpa catatan'):'–';
+ const p=$('#pl');if(!v){p.className='pill';p.innerHTML='<i></i><span>Belum pernah di-set</span>'}else if(tot&&ack>=tot){p.className='pill ok';p.innerHTML='<i></i><span>Semua akun up to date</span>'}else{p.className='pill run';p.innerHTML='<i></i><span>Menunggu akun lain</span>'}}
+
+function route(s){sess=s;if(!s||!s.user)return viewLogin();if(isAdmin(s.user))return viewDash(s.user);viewDenied(s.user)}
+(async()=>{try{const{data}=await sb.auth.getSession();route(data.session)}catch{viewLogin('Tidak bisa terhubung. Coba muat ulang.')}})();
+</script></body></html>
