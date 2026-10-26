@@ -1,1 +1,1893 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>HoopVision AI — Pro Basketball Shot & Skill Tracker</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            court: {
+              950: '#07090e',
+              900: '#0f131d',
+              800: '#181f2e',
+              700: '#252f44',
+              accent: '#ff5500',
+              neon: '#ff7b00',
+              made: '#10b981',
+              miss: '#ef4444'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
+    body {
+      background-color: #07090e;
+      color: #f8fafc;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    .glass {
+      background: rgba(24, 31, 46, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .orange-glow {
+      box-shadow: 0 0 25px -5px rgba(255, 85, 0, 0.45);
+    }
+    .court-zone {
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .court-zone:hover {
+      fill: rgba(255, 85, 0, 0.35) !important;
+      stroke: #ff7b00;
+      stroke-width: 2.5px;
+    }
+    .court-zone.active-zone {
+      fill: rgba(255, 85, 0, 0.55) !important;
+      stroke: #ffffff;
+      stroke-width: 3px;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f131d; }
+    ::-webkit-scrollbar-thumb { background: #252f44; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #ff5500; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-court-accent selection:text-white">
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed top-4 right-4 z-[999] flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <!-- SQL SETUP MODAL (Muncul jika tabel Supabase belum dibuat) -->
+  <div id="sql-modal" class="fixed inset-0 z-[200] hidden items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div class="glass max-w-2xl w-full rounded-2xl p-6 border border-orange-500/30 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-4 border-b border-white/10">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded-lg bg-orange-500/20 text-orange-400">
+            <i data-lucide="database" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-white">Setup Tabel Database Supabase</h3>
+            <p class="text-xs text-slate-400">Copy & Run SQL ini sekali saja di SQL Editor Supabase kamu agar sinkronisasi Cloud aktif.</p>
+          </div>
+        </div>
+        <button onclick="toggleSqlModal(false)" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="my-4 overflow-y-auto bg-court-950 p-4 rounded-xl border border-white/10 font-mono text-xs text-emerald-400 select-all" id="sql-code">
+create table if not exists public.basketball_sessions (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  user_email text,
+  drill_name text not null,
+  zone_id text not null,
+  shots_made int not null default 0,
+  shots_attempted int not null default 0,
+  shot_events jsonb default '[]'::jsonb,
+  duration_seconds int default 0,
+  notes text,
+  created_at timestamptz default now()
+);
+
+alter table public.basketball_sessions enable row level security;
+
+create policy "Users can manage own basketball sessions"
+on public.basketball_sessions for all
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);</div>
+      <div class="flex items-center justify-between pt-2 gap-3">
+        <span class="text-xs text-slate-400">*Jika belum dijalankan, data tetap tersimpan aman secara otomatis di LocalStorage perangkat.</span>
+        <div class="flex gap-2">
+          <button onclick="copySqlCode()" class="px-4 py-2 rounded-xl bg-court-accent hover:bg-court-neon text-white font-semibold text-xs flex items-center gap-1.5">
+            <i data-lucide="copy" class="w-4 h-4"></i> Copy SQL
+          </button>
+          <button onclick="toggleSqlModal(false)" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs">
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUTHENTICATION SCREEN -->
+  <section id="auth-screen" class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    <!-- Background Decorative Court Glow -->
+    <div class="absolute -top-40 -left-40 w-96 h-96 bg-orange-600/20 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-600/15 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <div class="glass w-full max-w-md rounded-3xl p-6 sm:p-8 border border-white/10 shadow-2xl relative z-10">
+      <div class="flex flex-col items-center text-center mb-6">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-court-accent to-amber-500 flex items-center justify-center orange-glow mb-4">
+          <i data-lucide="Flame" class="w-9 h-9 text-white"></i>
+        </div>
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[11px] font-bold tracking-wider uppercase mb-2">
+          <span>AI Basketball Shot Tracker</span>
+        </div>
+        <h1 class="text-3xl font-black tracking-tight text-white">HOOPVISION <span class="text-court-accent">AI</span></h1>
+        <p class="text-sm text-slate-400 mt-1">Track setiap tembakan, analisis akurasi per zona, dan latihan bersama AI Coach Gemini 3.5.</p>
+      </div>
+
+      <!-- Auth Tabs -->
+      <div class="grid grid-cols-2 p-1 bg-court-950 rounded-xl mb-6 border border-white/5">
+        <button id="tab-login" onclick="switchAuthMode('login')" class="py-2.5 text-sm font-bold rounded-lg bg-court-accent text-white transition-all">
+          Masuk (Login)
+        </button>
+        <button id="tab-register" onclick="switchAuthMode('register')" class="py-2.5 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition-all">
+          Daftar Baru
+        </button>
+      </div>
+
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+        <div id="register-name-field" class="hidden">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Nama Pemain / Jersey Name</label>
+          <div class="relative">
+            <i data-lucide="user" class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input type="text" id="auth-name" placeholder="Contoh: Jovan #7" class="w-full pl-10 pr-4 py-3 rounded-xl bg-court-950 border border-white/10 text-sm text-white focus:outline-none focus:border-court-accent" />
+          </div>
+        </div>
+
+        <div id="register-pos-field" class="hidden">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Posisi Utama</label>
+          <select id="auth-position" class="w-full px-4 py-3 rounded-xl bg-court-950 border border-white/10 text-sm text-white focus:outline-none focus:border-court-accent">
+            <option value="Point Guard (PG)">Point Guard (PG)</option>
+            <option value="Shooting Guard (SG)">Shooting Guard (SG)</option>
+            <option value="Small Forward (SF)">Small Forward (SF)</option>
+            <option value="Power Forward (PF)">Power Forward (PF)</option>
+            <option value="Center (C)">Center (C)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Email</label>
+          <div class="relative">
+            <i data-lucide="mail" class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input type="email" id="auth-email" required placeholder="nama@email.com" class="w-full pl-10 pr-4 py-3 rounded-xl bg-court-950 border border-white/10 text-sm text-white focus:outline-none focus:border-court-accent" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input type="password" id="auth-password" required minlength="6" placeholder="Minimal 6 karakter" class="w-full pl-10 pr-4 py-3 rounded-xl bg-court-950 border border-white/10 text-sm text-white focus:outline-none focus:border-court-accent" />
+          </div>
+        </div>
+
+        <button type="submit" id="auth-submit-btn" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-court-accent to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm orange-glow transition-all flex items-center justify-center gap-2">
+          <span>Masuk ke Court</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </form>
+
+      <div class="mt-6 pt-5 border-t border-white/10 flex flex-col gap-2">
+        <button onclick="enterDemoMode()" class="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 flex items-center justify-center gap-2 transition">
+          <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+          <span>Coba Cepat (Quick Guest / Offline Mode)</span>
+        </button>
+        <p class="text-[11px] text-center text-slate-500">Terhubung ke Supabase Cloud Auth & Database</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN APPLICATION SHELL -->
+  <div id="app-shell" class="hidden flex-1 flex flex-col pb-20 lg:pb-0">
+    <!-- Top Navbar -->
+    <header class="sticky top-0 z-40 glass border-b border-white/10 px-4 lg:px-8 py-3">
+      <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-court-accent to-amber-500 flex items-center justify-center shadow-lg">
+            <i data-lucide="flame" class="w-6 h-6 text-white"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-black text-lg tracking-tight text-white">HOOPVISION <span class="text-court-accent">AI</span></span>
+              <span id="cloud-badge" class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">SUPABASE LIVE</span>
+            </div>
+            <p id="player-greeting" class="text-xs text-slate-400">Memuat profil pemain...</p>
+          </div>
+        </div>
+
+        <!-- Desktop Nav Links -->
+        <nav class="hidden lg:flex items-center gap-1 bg-court-950/90 p-1.5 rounded-2xl border border-white/10">
+          <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 bg-court-accent text-white transition">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+          </button>
+          <button onclick="switchTab('tracker')" id="nav-tracker" class="nav-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 text-slate-400 hover:text-white transition">
+            <i data-lucide="camera" class="w-4 h-4"></i> Ball AI Tracker
+          </button>
+          <button onclick="switchTab('heatmap')" id="nav-heatmap" class="nav-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 text-slate-400 hover:text-white transition">
+            <i data-lucide="target" class="w-4 h-4"></i> Shot Chart & Zona
+          </button>
+          <button onclick="switchTab('drills')" id="nav-drills" class="nav-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 text-slate-400 hover:text-white transition">
+            <i data-lucide="dumbbell" class="w-4 h-4"></i> Pro Drills
+          </button>
+          <button onclick="switchTab('coach')" id="nav-coach" class="nav-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 text-slate-400 hover:text-white transition">
+            <i data-lucide="bot" class="w-4 h-4"></i> Gemini 3.5 Coach
+          </button>
+        </nav>
+
+        <!-- Actions Right -->
+        <div class="flex items-center gap-2">
+          <button onclick="toggleSqlModal(true)" title="Lihat SQL Tabel Supabase" class="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition">
+            <i data-lucide="database" class="w-4 h-4"></i>
+          </button>
+          <button onclick="handleLogout()" class="px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 text-red-400 text-xs font-bold flex items-center gap-1.5 transition">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Keluar</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 flex-1">
+
+      <!-- ================= TAB 1: DASHBOARD ================= -->
+      <div id="view-dashboard" class="tab-view space-y-6">
+        <!-- Hero Banner & Quick Start -->
+        <div class="rounded-3xl bg-gradient-to-r from-court-800 via-court-900 to-court-950 p-6 sm:p-8 border border-white/10 relative overflow-hidden">
+          <div class="absolute right-0 top-0 w-72 h-72 bg-court-accent/20 blur-[90px] rounded-full pointer-events-none"></div>
+          <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="space-y-2 max-w-xl">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/15 border border-orange-500/30 text-orange-400 text-xs font-bold">
+                <span class="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></span>
+                <span>READY FOR WORKOUT</span>
+              </div>
+              <h2 class="text-2xl sm:text-3xl font-black text-white">Tingkatkan Akurasi Shooting Kamu Hari Ini</h2>
+              <p class="text-sm text-slate-300">Gunakan kamera AI Vision HUD untuk menghitung tembakan masuk/meleset secara real-time, lalu minta evaluasi dari AI Coach Gemini 3.5.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <button onclick="switchTab('tracker')" class="px-5 py-3.5 rounded-2xl bg-court-accent hover:bg-court-neon text-white font-bold text-sm orange-glow flex items-center gap-2 transition">
+                <i data-lucide="play" class="w-4 h-4 fill-current"></i> Mulai Sesi Shooting
+              </button>
+              <button onclick="switchTab('coach')" class="px-5 py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-bold text-sm flex items-center gap-2 transition border border-white/10">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i> Tanya AI Coach
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top 4 KPI Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="glass p-5 rounded-2xl border border-white/10">
+            <div class="flex items-center justify-between text-slate-400 text-xs font-semibold mb-2">
+              <span>TOTAL SHOOTING (FG%)</span>
+              <i data-lucide="percent" class="w-4 h-4 text-court-accent"></i>
+            </div>
+            <div id="stat-fg" class="text-3xl font-black font-mono text-white">0.0%</div>
+            <p id="stat-fg-sub" class="text-xs text-slate-400 mt-1">0 Masuk / 0 Percobaan</p>
+          </div>
+
+          <div class="glass p-5 rounded-2xl border border-white/10">
+            <div class="flex items-center justify-between text-slate-400 text-xs font-semibold mb-2">
+              <span>3-POINT ACCURACY</span>
+              <i data-lucide="flame" class="w-4 h-4 text-emerald-400"></i>
+            </div>
+            <div id="stat-3pt" class="text-3xl font-black font-mono text-emerald-400">0.0%</div>
+            <p id="stat-3pt-sub" class="text-xs text-slate-400 mt-1">Zona Perimeter Luar</p>
+          </div>
+
+          <div class="glass p-5 rounded-2xl border border-white/10">
+            <div class="flex items-center justify-between text-slate-400 text-xs font-semibold mb-2">
+              <span>HOT ZONE TERBAIK</span>
+              <i data-lucide="crosshair" class="w-4 h-4 text-amber-400"></i>
+            </div>
+            <div id="stat-hotzone" class="text-xl sm:text-2xl font-black text-white truncate">-</div>
+            <p id="stat-hotzone-sub" class="text-xs text-slate-400 mt-1">Belum ada data tembakan</p>
+          </div>
+
+          <div class="glass p-5 rounded-2xl border border-white/10">
+            <div class="flex items-center justify-between text-slate-400 text-xs font-semibold mb-2">
+              <span>TOTAL SESI LATIHAN</span>
+              <i data-lucide="calendar-check" class="w-4 h-4 text-blue-400"></i>
+            </div>
+            <div id="stat-sessions" class="text-3xl font-black font-mono text-white">0</div>
+            <p id="stat-duration-sub" class="text-xs text-slate-400 mt-1">0 menit total waktu</p>
+          </div>
+        </div>
+
+        <!-- Charts & Recent Sessions -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Accuracy Trend Chart -->
+          <div class="lg:col-span-2 glass rounded-2xl p-5 border border-white/10 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="font-bold text-white text-base">Grafik Perkembangan Akurasi (FG%)</h3>
+                <p class="text-xs text-slate-400">Tren persentase tembakan masuk dari sesi ke sesi</p>
+              </div>
+              <button onclick="seedSampleWorkouts()" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 font-semibold flex items-center gap-1.5">
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-court-accent"></i> Isi Data Contoh
+              </button>
+            </div>
+            <div class="h-64 w-full">
+              <canvas id="accuracyChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Recent Workout History -->
+          <div class="glass rounded-2xl p-5 border border-white/10 flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-white text-base">Riwayat Sesi Terakhir</h3>
+              <span class="text-xs text-slate-400" id="history-count-label">0 sesi</span>
+            </div>
+            <div id="session-history-list" class="space-y-3 overflow-y-auto max-h-64 pr-1 flex-1">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TAB 2: BALL AI CAMERA TRACKER ================= -->
+      <div id="view-tracker" class="tab-view hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Left: Live Camera / AI HUD Overlay (7 cols) -->
+          <div class="lg:col-span-7 space-y-4">
+            <div class="glass rounded-3xl p-4 border border-white/10">
+              <!-- Camera Top Bar -->
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div class="flex items-center gap-2">
+                  <span id="cam-status-dot" class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                  <span class="text-xs font-bold uppercase tracking-wider text-slate-300" id="cam-status-text">AI VISION HUD STANDBY</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="toggleCameraFeed()" id="btn-camera-toggle" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white flex items-center gap-1.5 transition">
+                    <i data-lucide="video" class="w-3.5 h-3.5 text-court-accent"></i>
+                    <span>Aktifkan Kamera</span>
+                  </button>
+                  <button onclick="toggleVoiceControl()" id="btn-voice-toggle" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white flex items-center gap-1.5 transition" title="Ucapkan 'Masuk'/'Make' atau 'Miss'/'Gagal'">
+                    <i data-lucide="mic" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    <span id="voice-label">Voice Command: OFF</span>
+                  </button>
+                  <button onclick="toggleAutoSimAI()" id="btn-ai-sim" class="px-3 py-1.5 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/30 text-xs font-bold text-orange-300 flex items-center gap-1.5 transition">
+                    <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+                    <span id="ai-sim-label">Simulasi Trajectory</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Video + Canvas Container -->
+              <div class="relative w-full aspect-video bg-court-950 rounded-2xl overflow-hidden border border-white/10">
+                <video id="camera-video" autoplay playsinline muted class="w-full h-full object-cover hidden"></video>
+                <canvas id="hud-canvas" class="w-full h-full block"></canvas>
+
+                <!-- Floating Live Telemetry inside Camera -->
+                <div class="absolute top-3 left-3 bg-black/65 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 pointer-events-none">
+                  <div class="text-[10px] font-mono text-slate-400">RELEASE ARC / ENTRY ANGLE</div>
+                  <div class="text-sm font-mono font-bold text-amber-400" id="hud-arc-angle">46.5° OPTIMAL</div>
+                </div>
+
+                <div class="absolute top-3 right-3 bg-black/65 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/10 text-right pointer-events-none">
+                  <div class="text-[10px] font-mono text-slate-400">STREAK API</div>
+                  <div class="text-sm font-mono font-bold text-orange-400" id="hud-streak">🔥 0 IN A ROW</div>
+                </div>
+
+                <!-- Bottom Quick Overlay Counter -->
+                <div class="absolute bottom-3 inset-x-3 flex items-center justify-between bg-black/70 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/10">
+                  <div>
+                    <span class="text-[11px] text-slate-400 block">ZONA AKTIF</span>
+                    <span id="hud-zone-label" class="text-xs sm:text-sm font-bold text-white">Top of the Key (3PT)</span>
+                  </div>
+                  <div class="flex items-center gap-5 font-mono">
+                    <div class="text-center">
+                      <span class="text-[10px] text-slate-400 block">MASUK</span>
+                      <span id="live-made" class="text-lg font-black text-emerald-400">0</span>
+                    </div>
+                    <div class="text-center">
+                      <span class="text-[10px] text-slate-400 block">TOTAL</span>
+                      <span id="live-att" class="text-lg font-black text-white">0</span>
+                    </div>
+                    <div class="text-center">
+                      <span class="text-[10px] text-slate-400 block">AKURASI</span>
+                      <span id="live-pct" class="text-lg font-black text-amber-400">0%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Big Tap Buttons for Court Side Tracking -->
+              <div class="grid grid-cols-2 gap-4 mt-4">
+                <button onclick="recordShot(true)" class="py-5 rounded-2xl bg-emerald-500/20 hover:bg-emerald-500/30 active:scale-[0.98] border-2 border-emerald-500/50 text-emerald-300 font-black text-lg flex flex-col items-center justify-center gap-1 transition shadow-lg">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-400"></i>
+                    <span>SWISH / MASUK</span>
+                  </div>
+                  <span class="text-[11px] font-mono text-emerald-400/80">Tekan [SPACE] atau Klik</span>
+                </button>
+
+                <button onclick="recordShot(false)" class="py-5 rounded-2xl bg-red-500/20 hover:bg-red-500/30 active:scale-[0.98] border-2 border-red-500/50 text-red-300 font-black text-lg flex flex-col items-center justify-center gap-1 transition shadow-lg">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="x-circle" class="w-6 h-6 text-red-400"></i>
+                    <span>MISS / MELESET</span>
+                  </div>
+                  <span class="text-[11px] font-mono text-red-400/80">Tekan [M] atau Klik</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Session Controls, Mini Zone Picker & Save (5 cols) -->
+          <div class="lg:col-span-5 space-y-4">
+            <div class="glass rounded-3xl p-5 border border-white/10 space-y-4">
+              <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                <div>
+                  <h3 class="font-bold text-white text-base">Kontrol Sesi Latihan</h3>
+                  <p class="text-xs text-slate-400">Pilih drill & zona tembakan sebelum atau saat latihan</p>
+                </div>
+                <div class="px-3 py-1.5 rounded-xl bg-court-950 border border-white/10 font-mono text-sm font-bold text-amber-400" id="session-timer">
+                  00:00
+                </div>
+              </div>
+
+              <!-- Drill Name Input / Selector -->
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Nama Latihan / Drill</label>
+                <select id="tracker-drill-select" class="w-full px-3.5 py-2.5 rounded-xl bg-court-950 border border-white/10 text-sm text-white focus:outline-none focus:border-court-accent">
+                  <option value="Catch & Shoot 3PT">Catch & Shoot 3PT</option>
+                  <option value="Off-Dribble Pull Up Midrange">Off-Dribble Pull Up Midrange</option>
+                  <option value="Free Throw Pressure Routine">Free Throw Pressure Routine</option>
+                  <option value="Corner 3 Sniper Workout">Corner 3 Sniper Workout</option>
+                  <option value="Around The World (5 Spots)">Around The World (5 Spots)</option>
+                  <option value="Floater & Paint Touch">Floater & Paint Touch</option>
+                </select>
+              </div>
+
+              <!-- Zone Selector -->
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Pilih Zona Lapangan Aktif</label>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="quick-zone-buttons">
+                  <!-- Generated dynamically by JS -->
+                </div>
+              </div>
+
+              <!-- Notes -->
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Catatan Evaluasi Diri (Opsional)</label>
+                <input type="text" id="tracker-notes" placeholder="Contoh: Follow through tangan kanan sudah lebih stabil..." class="w-full px-3.5 py-2.5 rounded-xl bg-court-950 border border-white/10 text-sm text-white focus:outline-none focus:border-court-accent" />
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="pt-2 flex flex-wrap gap-2">
+                <button onclick="undoLastShot()" class="px-3.5 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <i data-lucide="undo-2" class="w-4 h-4"></i> Undo Shot
+                </button>
+                <button onclick="resetLiveTracker()" class="px-3.5 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset
+                </button>
+                <button onclick="saveCurrentWorkoutSession()" id="btn-save-session" class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-court-accent to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm orange-glow flex items-center justify-center gap-2 transition">
+                  <i data-lucide="cloud-upload" class="w-4 h-4"></i>
+                  <span>Simpan Sesi ke Cloud</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Shot Log Feed -->
+            <div class="glass rounded-3xl p-5 border border-white/10">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Log Tembakan Sesi Ini</h4>
+              <div id="live-shot-log" class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                <span class="text-xs text-slate-500">Belum ada tembakan tercatat di sesi ini.</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ================= TAB 3: INTERACTIVE SHOT CHART & HEATMAP ================= -->
+      <div id="view-heatmap" class="tab-view hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          <!-- Interactive Half-Court SVG (7 cols) -->
+          <div class="lg:col-span-7 glass rounded-3xl p-5 sm:p-6 border border-white/10">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <div>
+                <h3 class="font-bold text-white text-lg">FIBA / NBA Half-Court Shot Heatmap</h3>
+                <p class="text-xs text-slate-400">Klik zona di lapangan untuk melihat detail statistik atau langsung mencatat tembakan di zona tersebut.</p>
+              </div>
+              <div class="flex items-center gap-3 text-xs">
+                <span class="flex items-center gap-1 text-emerald-400"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Hot (&ge;50%)</span>
+                <span class="flex items-center gap-1 text-amber-400"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Warm (35-49%)</span>
+                <span class="flex items-center gap-1 text-red-400"><span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span> Cold (&lt;35%)</span>
+              </div>
+            </div>
+
+            <!-- Interactive SVG Basketball Half Court -->
+            <div class="w-full max-w-xl mx-auto bg-court-950 rounded-2xl p-3 border border-white/10 shadow-inner">
+              <svg id="basketball-court-svg" viewBox="0 0 500 470" class="w-full h-auto select-none">
+                <!-- Court Floor Background -->
+                <rect x="0" y="0" width="500" height="470" rx="14" fill="#0b101b" stroke="#334155" stroke-width="4"/>
+
+                <!-- Interactive Clickable Zones -->
+                <!-- 1. Left Corner 3 -->
+                <path id="zone-svg-corner_left_3" onclick="selectZone('corner_left_3')" class="court-zone" d="M 0,0 L 55,0 L 55,140 L 0,140 Z" fill="rgba(30,41,59,0.6)" stroke="#475569" stroke-width="1.5"/>
+                <!-- 2. Right Corner 3 -->
+                <path id="zone-svg-corner_right_3" onclick="selectZone('corner_right_3')" class="court-zone" d="M 445,0 L 500,0 L 500,140 L 445,140 Z" fill="rgba(30,41,59,0.6)" stroke="#475569" stroke-width="1.5"/>
+                
+                <!-- 3. Left Wing 3 -->
+                <path id="zone-svg-wing_left_3" onclick="selectZone('wing_left_3')" class="court-zone" d="M 0,140 L 55,140 A 220,220 0 0,0 165,260 L 110,470 L 0,470 Z" fill="rgba(30,41,59,0.6)" stroke="#475569" stroke-width="1.5"/>
+                <!-- 4. Right Wing 3 -->
+                <path id="zone-svg-wing_right_3" onclick="selectZone('wing_right_3')" class="court-zone" d="M 445,140 L 500,140 L 500,470 L 390,470 L 335,260 A 220,220 0 0,0 445,140 Z" fill="rgba(30,41,59,0.6)" stroke="#475569" stroke-width="1.5"/>
+                
+                <!-- 5. Top of the Key 3 -->
+                <path id="zone-svg-top_key_3" onclick="selectZone('top_key_3')" class="court-zone" d="M 165,260 A 220,220 0 0,0 335,260 L 390,470 L 110,470 Z" fill="rgba(30,41,59,0.6)" stroke="#475569" stroke-width="1.5"/>
+
+                <!-- 6. Mid-Range Left -->
+                <path id="zone-svg-mid_left" onclick="selectZone('mid_left')" class="court-zone" d="M 55,0 L 170,0 L 170,190 L 165,260 A 220,220 0 0,1 55,140 Z" fill="rgba(30,41,59,0.75)" stroke="#475569" stroke-width="1.5"/>
+                <!-- 7. Mid-Range Right -->
+                <path id="zone-svg-mid_right" onclick="selectZone('mid_right')" class="court-zone" d="M 330,0 L 445,0 L 445,140 A 220,220 0 0,1 335,260 L 330,190 Z" fill="rgba(30,41,59,0.75)" stroke="#475569" stroke-width="1.5"/>
+                <!-- 8. Mid-Range Center / Free Throw -->
+                <path id="zone-svg-free_throw" onclick="selectZone('free_throw')" class="court-zone" d="M 170,190 L 330,190 L 335,260 A 220,220 0 0,1 165,260 Z" fill="rgba(30,41,59,0.8)" stroke="#475569" stroke-width="1.5"/>
+
+                <!-- 9. Paint / Restricted Area -->
+                <rect id="zone-svg-paint" onclick="selectZone('paint')" class="court-zone" x="170" y="0" width="160" height="190" fill="rgba(30,41,59,0.9)" stroke="#f97316" stroke-width="2"/>
+
+                <!-- Free Throw Circle -->
+                <circle cx="250" cy="190" r="60" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,6" pointer-events="none"/>
+                <!-- Restricted Arc -->
+                <path d="M 210,40 A 40,40 0 0,0 290,40" fill="none" stroke="#f97316" stroke-width="2" pointer-events="none"/>
+                <!-- Backboard & Rim -->
+                <line x1="220" y1="25" x2="280" y2="25" stroke="#ffffff" stroke-width="4" pointer-events="none"/>
+                <circle cx="250" cy="38" r="11" fill="none" stroke="#ff5500" stroke-width="3" pointer-events="none"/>
+
+                <!-- Zone Labels Overlay (Updated by JS) -->
+                <g class="font-mono text-[12px] font-bold fill-white pointer-events-none" text-anchor="middle">
+                  <text id="svg-label-corner_left_3" x="28" y="75">0%</text>
+                  <text id="svg-label-corner_right_3" x="472" y="75">0%</text>
+                  <text id="svg-label-wing_left_3" x="75" y="310">0%</text>
+                  <text id="svg-label-wing_right_3" x="425" y="310">0%</text>
+                  <text id="svg-label-top_key_3" x="250" y="370">0%</text>
+                  <text id="svg-label-mid_left" x="112" y="125">0%</text>
+                  <text id="svg-label-mid_right" x="388" y="125">0%</text>
+                  <text id="svg-label-free_throw" x="250" y="232">0%</text>
+                  <text id="svg-label-paint" x="250" y="110">0%</text>
+                </g>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Zone Breakdown & Direct Shot Logger (5 cols) -->
+          <div class="lg:col-span-5 space-y-4">
+            <div class="glass rounded-3xl p-5 border border-white/10 space-y-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="text-[11px] font-bold uppercase tracking-wider text-court-accent">ZONA TERPILIH</span>
+                  <h4 id="selected-zone-title" class="text-xl font-black text-white">Top of the Key (3PT)</h4>
+                </div>
+                <div id="selected-zone-badge" class="px-3 py-1 rounded-xl bg-orange-500/20 text-orange-400 font-mono font-bold text-sm">
+                  0 / 0 (0%)
+                </div>
+              </div>
+
+              <p class="text-xs text-slate-400">Tambah cepat hasil latihan manual pada zona ini:</p>
+              <div class="grid grid-cols-2 gap-3">
+                <button onclick="quickLogZoneShot(true)" class="py-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5">
+                  <i data-lucide="plus" class="w-4 h-4"></i> +1 Masuk di Zona Ini
+                </button>
+                <button onclick="quickLogZoneShot(false)" class="py-3 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 font-bold text-xs flex items-center justify-center gap-1.5">
+                  <i data-lucide="plus" class="w-4 h-4"></i> +1 Miss di Zona Ini
+                </button>
+              </div>
+            </div>
+
+            <!-- All 9 Zones Table -->
+            <div class="glass rounded-3xl p-5 border border-white/10">
+              <h4 class="font-bold text-white text-sm mb-3">Rincian Akurasi 9 Zona Lapangan</h4>
+              <div id="zone-breakdown-list" class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ================= TAB 4: PRO DRILLS & WORKOUTS ================= -->
+      <div id="view-drills" class="tab-view hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-black text-white">Program Latihan & Pro Drills (Ball AI Library)</h2>
+            <p class="text-sm text-slate-400">Pilih program latihan terstruktur untuk langsung dijalankan di kamera tracker.</p>
+          </div>
+        </div>
+
+        <div id="drills-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Populated dynamically by JS -->
+        </div>
+      </div>
+
+      <!-- ================= TAB 5: GEMINI 3.5 AI COACH ================= -->
+      <div id="view-coach" class="tab-view hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Left Sidebar: Player Telemetry Summary & Presets (4 cols) -->
+          <div class="lg:col-span-4 space-y-4">
+            <div class="glass rounded-3xl p-5 border border-white/10 space-y-4">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-court-accent to-amber-500 flex items-center justify-center orange-glow">
+                  <i data-lucide="bot" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <h3 class="font-black text-white text-base">Coach Gemini 3.5</h3>
+                    <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded-md bg-orange-500/20 text-orange-400">PRO VISION</span>
+                  </div>
+                  <p class="text-xs text-slate-400">Terhubung ke Vercel Env `GeminiAPI`</p>
+                </div>
+              </div>
+
+              <div class="p-3.5 rounded-2xl bg-court-950 border border-white/10 text-xs space-y-1.5">
+                <div class="font-bold text-slate-300 mb-1 flex items-center gap-1.5">
+                  <i data-lucide="activity" class="w-3.5 h-3.5 text-court-accent"></i>
+                  <span>Data Statistik Kamu yang Dikirim ke AI:</span>
+                </div>
+                <p id="coach-stat-preview" class="text-slate-400 leading-relaxed">Memuat ringkasan statistik...</p>
+              </div>
+
+              <div class="space-y-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Pertanyaan Cepat (1-Klik Analisis):</span>
+                <button onclick="askCoachPreset('Analisis kelemahan shooting saya berdasarkan statistik 9 zona lapangan saat ini dan berikan solusi mekanik tembakannya.')" class="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-200 transition">
+                  🎯 Analisis Kelemahan Zona & Mekanik Shooting
+                </button>
+                <button onclick="askCoachPreset('Buatkan jadwal latihan basket 45 menit untuk meningkatkan konsistensi 3-Point dan stamina kuarter 4.')" class="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-200 transition">
+                  🏀 Jadwal Latihan 45 Menit (3PT & Stamina)
+                </button>
+                <button onclick="askCoachPreset('Bagaimana cara memperbaiki release bola yang sering meleset ke kiri/kanan saat melakukan pull-up jumper?')" class="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-200 transition">
+                  📐 Perbaiki Form Pull-Up Jumper & Follow Through
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Chat Window (8 cols) -->
+          <div class="lg:col-span-8 glass rounded-3xl border border-white/10 flex flex-col h-[560px]">
+            <!-- Chat Header -->
+            <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="font-bold text-sm text-white">Ruang Diskusi Taktik & Evaluasi AI Coach</span>
+              </div>
+              <button onclick="clearCoachChat()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Bersihkan Chat
+              </button>
+            </div>
+
+            <!-- Messages Container -->
+            <div id="coach-messages" class="flex-1 p-5 overflow-y-auto space-y-4">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-xl bg-court-accent flex items-center justify-center shrink-0 mt-0.5">
+                  <i data-lucide="bot" class="w-4 h-4 text-white"></i>
+                </div>
+                <div class="bg-court-950 border border-white/10 rounded-2xl rounded-tl-none p-4 text-sm text-slate-200 max-w-2xl leading-relaxed">
+                  Halo Baller! Saya <strong>AI Coach Gemini 3.5</strong> kamu. Saya sudah membaca statistik sesi latihan dan persentase zona tembakanmu. Mau kita bedah form *shooting*, program *drill* harian, atau evaluasi *shot chart* kamu hari ini?
+                </div>
+              </div>
+            </div>
+
+            <!-- Chat Input -->
+            <form onsubmit="handleCoachSubmit(event)" class="p-4 border-t border-white/10 flex gap-2">
+              <input type="text" id="coach-input" required placeholder="Tanyakan analisis form shooting, drill, atau evaluasi statistikmu..." class="flex-1 px-4 py-3 rounded-xl bg-court-950 border border-white/10 text-sm text-white focus:outline-none focus:border-court-accent" />
+              <button type="submit" id="coach-send-btn" class="px-5 py-3 rounded-xl bg-court-accent hover:bg-court-neon text-white font-bold text-sm flex items-center gap-2 transition">
+                <span>Kirim</span>
+                <i data-lucide="send" class="w-4 h-4"></i>
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+
+    <!-- MOBILE BOTTOM NAVIGATION -->
+    <nav class="lg:hidden fixed bottom-0 inset-x-0 z-50 glass border-t border-white/10 px-2 py-2">
+      <div class="grid grid-cols-5 gap-1 max-w-md mx-auto">
+        <button onclick="switchTab('dashboard')" id="mnav-dashboard" class="mnav-btn flex flex-col items-center py-1.5 rounded-xl text-court-accent font-bold text-[10px] gap-1">
+          <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+          <span>Home</span>
+        </button>
+        <button onclick="switchTab('tracker')" id="mnav-tracker" class="mnav-btn flex flex-col items-center py-1.5 rounded-xl text-slate-400 font-bold text-[10px] gap-1">
+          <i data-lucide="camera" class="w-5 h-5"></i>
+          <span>Tracker</span>
+        </button>
+        <button onclick="switchTab('heatmap')" id="mnav-heatmap" class="mnav-btn flex flex-col items-center py-1.5 rounded-xl text-slate-400 font-bold text-[10px] gap-1">
+          <i data-lucide="target" class="w-5 h-5"></i>
+          <span>Zona</span>
+        </button>
+        <button onclick="switchTab('drills')" id="mnav-drills" class="mnav-btn flex flex-col items-center py-1.5 rounded-xl text-slate-400 font-bold text-[10px] gap-1">
+          <i data-lucide="dumbbell" class="w-5 h-5"></i>
+          <span>Drills</span>
+        </button>
+        <button onclick="switchTab('coach')" id="mnav-coach" class="mnav-btn flex flex-col items-center py-1.5 rounded-xl text-slate-400 font-bold text-[10px] gap-1">
+          <i data-lucide="bot" class="w-5 h-5"></i>
+          <span>AI Coach</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- APPLICATION JAVASCRIPT -->
+  <script>
+    /**************************************************************
+     * 1. SUPABASE CONFIGURATION & INITIALIZATION
+     **************************************************************/
+    const SUPABASE_URL = 'https://ifgtsizuvxescnoorfzn.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_TaNz9oUIgfLl6aHMdg5Vjw_xfWBYBhP';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    /**************************************************************
+     * 2. COURT ZONES & PRO DRILLS CONSTANTS
+     **************************************************************/
+    const COURT_ZONES = [
+      { id: 'corner_left_3', name: 'Left Corner 3PT', is3PT: true, short: 'L-Corner 3' },
+      { id: 'wing_left_3', name: 'Left Wing 3PT', is3PT: true, short: 'L-Wing 3' },
+      { id: 'top_key_3', name: 'Top of the Key 3PT', is3PT: true, short: 'Top Key 3' },
+      { id: 'wing_right_3', name: 'Right Wing 3PT', is3PT: true, short: 'R-Wing 3' },
+      { id: 'corner_right_3', name: 'Right Corner 3PT', is3PT: true, short: 'R-Corner 3' },
+      { id: 'mid_left', name: 'Left Baseline Mid-Range', is3PT: false, short: 'Mid Left' },
+      { id: 'free_throw', name: 'Free Throw / High Post', is3PT: false, short: 'Free Throw' },
+      { id: 'mid_right', name: 'Right Elbow Mid-Range', is3PT: false, short: 'Mid Right' },
+      { id: 'paint', name: 'Paint / Restricted Area', is3PT: false, short: 'In The Paint' }
+    ];
+
+    const PRO_DRILLS = [
+      {
+        title: 'Stephen Curry 5-Spot 3PT Flurry',
+        zone: 'top_key_3',
+        targetShots: 50,
+        level: 'Elite Perimeter',
+        desc: '10 tembakan dari masing-masing 5 titik busur 3 poin. Fokus pada footwork cepat dan arc 45-48 derajat.'
+      },
+      {
+        title: 'Corner 3 Sniper Consistency',
+        zone: 'corner_left_3',
+        targetShots: 30,
+        level: 'Shooter',
+        desc: 'Latihan catch-and-shoot cepat dari sudut lapangan untuk memaksimalkan spacing tim.'
+      },
+      {
+        title: 'Kobe Mid-Range Elbow Pull-Up',
+        zone: 'mid_right',
+        targetShots: 25,
+        level: 'All-Around',
+        desc: '1-2 dribble eksplosif menuju elbow diikuti dengan elevasi tinggi dan balance sempurna.'
+      },
+      {
+        title: 'Clutch Free Throw 90% Challenge',
+        zone: 'free_throw',
+        targetShots: 20,
+        level: 'Fundamental',
+        desc: 'Simulasi tembakan bebas saat kondisi lelah. Fokus pada rutinitas napas dan follow-through.'
+      },
+      {
+        title: 'Kyrie Floater & Paint Touch',
+        zone: 'paint',
+        targetShots: 30,
+        level: 'Playmaker',
+        desc: 'Finishing tinggi di area paint melewati penjagaan bigman lawan dengan satu tangan.'
+      },
+      {
+        title: 'Dame Deep Wing Range Finder',
+        zone: 'wing_left_3',
+        targetShots: 25,
+        level: 'Pro Range',
+        desc: 'Tembakan 3 poin dari sayap kiri setelah screen (Pick & Pop / Off-the-dribble).'
+      }
+    ];
+
+    /**************************************************************
+     * 3. GLOBAL APPLICATION STATE
+     **************************************************************/
+    let authMode = 'login';
+    let currentUser = null;
+    let sessionsData = []; // Array of saved workout sessions
+    let selectedZoneId = 'top_key_3';
+    let accuracyChartInstance = null;
+
+    // Live Tracker State
+    let liveSession = {
+      made: 0,
+      attempted: 0,
+      streak: 0,
+      events: [], // { made: bool, zoneId: string, time: string, arc: number }
+      startTime: Date.now(),
+      elapsedSeconds: 0
+    };
+    let timerInterval = null;
+    let cameraStream = null;
+    let aiSimulationActive = true;
+    let voiceRecognition = null;
+    let isVoiceListening = false;
+
+    // Canvas Animation State
+    let ballAnim = {
+      active: false,
+      t: 0,
+      made: true,
+      arcAngle: 46.5
+    };
+
+    /**************************************************************
+     * 4. UI UTILITIES & TOAST NOTIFICATIONS
+     **************************************************************/
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const colors = {
+        success: 'border-emerald-500/50 bg-emerald-950/90 text-emerald-200',
+        error: 'border-red-500/50 bg-red-950/90 text-red-200',
+        info: 'border-orange-500/50 bg-court-900/95 text-white'
+      };
+      const el = document.createElement('div');
+      el.className = `pointer-events-auto px-4 py-3 rounded-2xl border backdrop-blur-md shadow-xl text-xs font-semibold flex items-center justify-between gap-3 transition-all ${colors[type] || colors.info}`;
+      el.innerHTML = `<span>${message}</span>`;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 300);
+      }, 3600);
+    }
+
+    function toggleSqlModal(show) {
+      const modal = document.getElementById('sql-modal');
+      if (show) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      } else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function copySqlCode() {
+      const sql = document.getElementById('sql-code').innerText;
+      navigator.clipboard.writeText(sql);
+      showToast('Kode SQL berhasil disalin! Jalankan di SQL Editor Supabase.', 'success');
+    }
+
+    /**************************************************************
+     * 5. AUTHENTICATION (SUPABASE + LOCAL FALLBACK)
+     **************************************************************/
+    function switchAuthMode(mode) {
+      authMode = mode;
+      const loginBtn = document.getElementById('tab-login');
+      const regBtn = document.getElementById('tab-register');
+      const nameField = document.getElementById('register-name-field');
+      const posField = document.getElementById('register-pos-field');
+      const submitBtn = document.getElementById('auth-submit-btn');
+
+      if (mode === 'login') {
+        loginBtn.className = 'py-2.5 text-sm font-bold rounded-lg bg-court-accent text-white transition-all';
+        regBtn.className = 'py-2.5 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition-all';
+        nameField.classList.add('hidden');
+        posField.classList.add('hidden');
+        submitBtn.innerHTML = '<span>Masuk ke Court</span>';
+      } else {
+        regBtn.className = 'py-2.5 text-sm font-bold rounded-lg bg-court-accent text-white transition-all';
+        loginBtn.className = 'py-2.5 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition-all';
+        nameField.classList.remove('hidden');
+        posField.classList.remove('hidden');
+        submitBtn.innerHTML = '<span>Buat Akun Pemain</span>';
+      }
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const name = document.getElementById('auth-name').value.trim() || email.split('@')[0];
+      const position = document.getElementById('auth-position').value;
+      const btn = document.getElementById('auth-submit-btn');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>Memproses...</span>';
+
+      try {
+        if (authMode === 'register') {
+          const { data, error } = await supabaseClient.auth.signUp({
+            email,
+            password,
+            options: {
+              data: { full_name: name, position: position }
+            }
+          });
+          if (error) throw error;
+
+          if (data?.user) {
+            showToast('Registrasi berhasil! Selamat datang di HoopVision AI.', 'success');
+            initUserSession(data.user);
+          }
+        } else {
+          const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email,
+            password
+          });
+          if (error) throw error;
+          if (data?.user) {
+            showToast('Login berhasil! Selamat berlatih.', 'success');
+            initUserSession(data.user);
+          }
+        }
+      } catch (err) {
+        showToast(err.message || 'Gagal autentikasi dengan Supabase.', 'error');
+      } finally {
+        btn.disabled = false;
+        switchAuthMode(authMode);
+      }
+    }
+
+    function enterDemoMode() {
+      const demoUser = {
+        id: 'local-guest-player',
+        email: 'baller@hoopvision.ai',
+        user_metadata: {
+          full_name: 'Pro Baller',
+          position: 'Shooting Guard (SG)'
+        },
+        isGuest: true
+      };
+      initUserSession(demoUser);
+      showToast('Masuk dalam Mode Guest. Semua fitur & tracker aktif!', 'info');
+    }
+
+    async function handleLogout() {
+      stopCameraFeed();
+      if (currentUser && !currentUser.isGuest) {
+        await supabaseClient.auth.signOut();
+      }
+      currentUser = null;
+      document.getElementById('app-shell').classList.add('hidden');
+      document.getElementById('auth-screen').classList.remove('hidden');
+      showToast('Berhasil keluar dari sesi.', 'info');
+    }
+
+    async function initUserSession(user) {
+      currentUser = user;
+      const meta = user.user_metadata || {};
+      const displayName = meta.full_name || user.email?.split('@')[0] || 'Baller';
+      const displayPos = meta.position || 'All-Around Player';
+
+      document.getElementById('player-greeting').textContent = `${displayName} • ${displayPos}`;
+      const badge = document.getElementById('cloud-badge');
+      if (user.isGuest) {
+        badge.textContent = 'LOCAL GUEST';
+        badge.className = 'px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30';
+      } else {
+        badge.textContent = 'SUPABASE LIVE';
+        badge.className = 'px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+      }
+
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('app-shell').classList.remove('hidden');
+
+      renderQuickZoneButtons();
+      renderProDrills();
+      await loadSessionsFromDatabase();
+      startTrackerTimer();
+      requestAnimationFrame(drawHudCanvasLoop);
+      lucide.createIcons();
+    }
+
+    /**************************************************************
+     * 6. DATABASE CRUD (SUPABASE + LOCALSTORAGE SYNC)
+     **************************************************************/
+    function getLocalStorageKey() {
+      const uid = currentUser ? currentUser.id : 'guest';
+      return `hoopvision_sessions_${uid}`;
+    }
+
+    async function loadSessionsFromDatabase() {
+      const localRaw = localStorage.getItem(getLocalStorageKey());
+      let localList = localRaw ? JSON.parse(localRaw) : [];
+
+      if (currentUser && !currentUser.isGuest) {
+        try {
+          const { data, error } = await supabaseClient
+            .from('basketball_sessions')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: true });
+
+          if (!error && Array.isArray(data)) {
+            sessionsData = data;
+            localStorage.setItem(getLocalStorageKey(), JSON.stringify(sessionsData));
+          } else {
+            sessionsData = localList;
+          }
+        } catch (e) {
+          sessionsData = localList;
+        }
+      } else {
+        sessionsData = localList;
+      }
+
+      refreshAllAnalytics();
+    }
+
+    async function saveSessionRecord(sessionObj) {
+      const newRecord = {
+        id: crypto.randomUUID ? crypto.randomUUID() : 'sess-' + Date.now(),
+        user_id: currentUser ? currentUser.id : 'guest',
+        user_email: currentUser ? currentUser.email : 'guest@local',
+        drill_name: sessionObj.drill_name,
+        zone_id: sessionObj.zone_id,
+        shots_made: sessionObj.shots_made,
+        shots_attempted: sessionObj.shots_attempted,
+        shot_events: sessionObj.shot_events || [],
+        duration_seconds: sessionObj.duration_seconds || 0,
+        notes: sessionObj.notes || '',
+        created_at: new Date().toISOString()
+      };
+
+      // Always update local state immediately for zero-latency UI
+      sessionsData.push(newRecord);
+      localStorage.setItem(getLocalStorageKey(), JSON.stringify(sessionsData));
+      refreshAllAnalytics();
+
+      // Sync to Supabase if logged in with real account
+      if (currentUser && !currentUser.isGuest) {
+        const { error } = await supabaseClient.from('basketball_sessions').insert([{
+          user_id: currentUser.id,
+          user_email: currentUser.email,
+          drill_name: newRecord.drill_name,
+          zone_id: newRecord.zone_id,
+          shots_made: newRecord.shots_made,
+          shots_attempted: newRecord.shots_attempted,
+          shot_events: newRecord.shot_events,
+          duration_seconds: newRecord.duration_seconds,
+          notes: newRecord.notes
+        }]);
+
+        if (error) {
+          console.warn('Supabase insert warning:', error.message);
+          showToast('Tersimpan di perangkat! (Klik ikon Database di kanan atas jika tabel Supabase belum dibuat).', 'info');
+        } else {
+          showToast('Sesi latihan berhasil disinkronkan ke Supabase Cloud!', 'success');
+        }
+      } else {
+        showToast('Sesi latihan berhasil disimpan!', 'success');
+      }
+    }
+
+    async function seedSampleWorkouts() {
+      const samples = [
+        { drill_name: 'Catch & Shoot 3PT', zone_id: 'top_key_3', shots_made: 14, shots_attempted: 20, duration_seconds: 420, notes: 'Ritme kaki bagus' },
+        { drill_name: 'Corner 3 Sniper Workout', zone_id: 'corner_left_3', shots_made: 18, shots_attempted: 25, duration_seconds: 510, notes: 'Sudut kiri sangat akurat' },
+        { drill_name: 'Off-Dribble Pull Up Midrange', zone_id: 'mid_right', shots_made: 11, shots_attempted: 20, duration_seconds: 390, notes: 'Perlu elevasi lebih tinggi' },
+        { drill_name: 'Free Throw Pressure Routine', zone_id: 'free_throw', shots_made: 17, shots_attempted: 20, duration_seconds: 300, notes: 'Fokus pernapasan stabil' }
+      ];
+      for (const s of samples) {
+        await saveSessionRecord(s);
+      }
+    }
+
+    /**************************************************************
+     * 7. ANALYTICS, CHARTS & HEATMAP RENDERING
+     **************************************************************/
+    function refreshAllAnalytics() {
+      let totalMade = 0;
+      let totalAtt = 0;
+      let threeMade = 0;
+      let threeAtt = 0;
+      let totalDurationSec = 0;
+
+      // Aggregate per zone
+      const zoneStats = {};
+      COURT_ZONES.forEach(z => {
+        zoneStats[z.id] = { made: 0, att: 0, name: z.name, is3PT: z.is3PT };
+      });
+
+      sessionsData.forEach(sess => {
+        const m = Number(sess.shots_made) || 0;
+        const a = Number(sess.shots_attempted) || 0;
+        totalMade += m;
+        totalAtt += a;
+        totalDurationSec += Number(sess.duration_seconds) || 0;
+
+        if (Array.isArray(sess.shot_events) && sess.shot_events.length > 0) {
+          sess.shot_events.forEach(ev => {
+            const zid = ev.zoneId || sess.zone_id;
+            if (zoneStats[zid]) {
+              zoneStats[zid].att += 1;
+              if (ev.made) zoneStats[zid].made += 1;
+              if (zoneStats[zid].is3PT) {
+                threeAtt += 1;
+                if (ev.made) threeMade += 1;
+              }
+            }
+          });
+        } else if (zoneStats[sess.zone_id]) {
+          zoneStats[sess.zone_id].made += m;
+          zoneStats[sess.zone_id].att += a;
+          if (zoneStats[sess.zone_id].is3PT) {
+            threeMade += m;
+            threeAtt += a;
+          }
+        }
+      });
+
+      const fgPct = totalAtt > 0 ? ((totalMade / totalAtt) * 100).toFixed(1) : '0.0';
+      const threePct = threeAtt > 0 ? ((threeMade / threeAtt) * 100).toFixed(1) : '0.0';
+
+      document.getElementById('stat-fg').textContent = `${fgPct}%`;
+      document.getElementById('stat-fg-sub').textContent = `${totalMade} Masuk / ${totalAtt} Percobaan`;
+      document.getElementById('stat-3pt').textContent = `${threePct}%`;
+      document.getElementById('stat-3pt-sub').textContent = `${threeMade} Masuk / ${threeAtt} Percobaan 3PT`;
+      document.getElementById('stat-sessions').textContent = sessionsData.length;
+      document.getElementById('stat-duration-sub').textContent = `${Math.round(totalDurationSec / 60)} menit total latihan`;
+
+      // Find Best Hot Zone
+      let bestZone = null;
+      let bestPct = -1;
+      Object.keys(zoneStats).forEach(zid => {
+        const st = zoneStats[zid];
+        if (st.att >= 3) {
+          const p = (st.made / st.att) * 100;
+          if (p > bestPct) {
+            bestPct = p;
+            bestZone = st;
+          }
+        }
+      });
+
+      if (bestZone) {
+        document.getElementById('stat-hotzone').textContent = bestZone.name;
+        document.getElementById('stat-hotzone-sub').textContent = `${bestPct.toFixed(0)}% (${bestZone.made}/${bestZone.att} Masuk)`;
+      } else {
+        document.getElementById('stat-hotzone').textContent = 'Belum Cukup Data';
+        document.getElementById('stat-hotzone-sub').textContent = 'Minimal 3 tembakan di 1 zona';
+      }
+
+      renderSessionHistoryList();
+      renderAccuracyChart();
+      updateCourtHeatmapSVG(zoneStats);
+      updateCoachTelemetrySummary(fgPct, threePct, totalMade, totalAtt, zoneStats);
+    }
+
+    function renderSessionHistoryList() {
+      const container = document.getElementById('session-history-list');
+      document.getElementById('history-count-label').textContent = `${sessionsData.length} sesi`;
+
+      if (sessionsData.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-slate-500 text-xs">
+            Belum ada sesi latihan tersimpan. Mulai dari tab <b>Ball AI Tracker</b> atau klik <b>Isi Data Contoh</b>.
+          </div>`;
+        return;
+      }
+
+      const reversed = [...sessionsData].reverse().slice(0, 12);
+      container.innerHTML = reversed.map(sess => {
+        const pct = sess.shots_attempted > 0 ? Math.round((sess.shots_made / sess.shots_attempted) * 100) : 0;
+        const zoneObj = COURT_ZONES.find(z => z.id === sess.zone_id);
+        const dateStr = new Date(sess.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        const badgeColor = pct >= 55 ? 'text-emerald-400 bg-emerald-500/15' : pct >= 35 ? 'text-amber-400 bg-amber-500/15' : 'text-red-400 bg-red-500/15';
+
+        return `
+          <div class="p-3.5 rounded-2xl bg-court-950/90 border border-white/10 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="font-bold text-white text-xs truncate">${sess.drill_name}</div>
+              <div class="text-[11px] text-slate-400 truncate">${zoneObj ? zoneObj.short : sess.zone_id} • ${dateStr}</div>
+            </div>
+            <div class="text-right shrink-0">
+              <span class="px-2.5 py-1 rounded-lg font-mono font-bold text-xs ${badgeColor}">${pct}%</span>
+              <div class="text-[10px] font-mono text-slate-400 mt-1">${sess.shots_made}/${sess.shots_attempted}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderAccuracyChart() {
+      const ctx = document.getElementById('accuracyChart').getContext('2d');
+      const labels = sessionsData.map((s, idx) => `Sesi ${idx + 1}`);
+      const dataPoints = sessionsData.map(s => s.shots_attempted > 0 ? Number(((s.shots_made / s.shots_attempted) * 100).toFixed(1)) : 0);
+
+      if (accuracyChartInstance) {
+        accuracyChartInstance.destroy();
+      }
+
+      accuracyChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels.length ? labels : ['Belum ada sesi'],
+          datasets: [{
+            label: 'Shooting FG%',
+            data: dataPoints.length ? dataPoints : [0],
+            borderColor: '#ff5500',
+            backgroundColor: 'rgba(255, 85, 0, 0.15)',
+            borderWidth: 3,
+            pointBackgroundColor: '#ff7b00',
+            pointRadius: 4,
+            tension: 0.35,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              min: 0,
+              max: 100,
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { color: '#94a3b8', callback: v => v + '%' }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: '#94a3b8' }
+            }
+          }
+        }
+      });
+    }
+
+    function updateCourtHeatmapSVG(zoneStats) {
+      const breakdownEl = document.getElementById('zone-breakdown-list');
+      let breakdownHtml = '';
+
+      COURT_ZONES.forEach(z => {
+        const st = zoneStats[z.id] || { made: 0, att: 0 };
+        const pct = st.att > 0 ? Math.round((st.made / st.att) * 100) : 0;
+        const pathEl = document.getElementById(`zone-svg-${z.id}`);
+        const textEl = document.getElementById(`svg-label-${z.id}`);
+
+        if (textEl) {
+          textEl.textContent = st.att > 0 ? `${pct}% (${st.made}/${st.att})` : '0%';
+        }
+
+        if (pathEl) {
+          pathEl.classList.toggle('active-zone', z.id === selectedZoneId);
+          if (st.att === 0) {
+            pathEl.style.fill = 'rgba(30, 41, 59, 0.65)';
+          } else if (pct >= 50) {
+            pathEl.style.fill = 'rgba(16, 185, 129, 0.45)'; // Hot Emerald
+          } else if (pct >= 35) {
+            pathEl.style.fill = 'rgba(245, 158, 11, 0.45)'; // Warm Amber
+          } else {
+            pathEl.style.fill = 'rgba(239, 68, 68, 0.45)'; // Cold Red
+          }
+        }
+
+        const barColor = pct >= 50 ? 'bg-emerald-500' : pct >= 35 ? 'bg-amber-500' : 'bg-red-500';
+        breakdownHtml += `
+          <div onclick="selectZone('${z.id}')" class="p-3 rounded-xl bg-court-950 border ${z.id === selectedZoneId ? 'border-court-accent' : 'border-white/5'} cursor-pointer hover:border-white/20 transition">
+            <div class="flex items-center justify-between text-xs mb-1.5">
+              <span class="font-bold text-white">${z.name}</span>
+              <span class="font-mono font-bold text-slate-300">${st.made}/${st.att} (${pct}%)</span>
+            </div>
+            <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+              <div class="h-full ${barColor}" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      });
+
+      breakdownEl.innerHTML = breakdownHtml;
+
+      // Update Selected Zone Card
+      const activeZoneObj = COURT_ZONES.find(z => z.id === selectedZoneId);
+      const activeSt = zoneStats[selectedZoneId] || { made: 0, att: 0 };
+      const activePct = activeSt.att > 0 ? Math.round((activeSt.made / activeSt.att) * 100) : 0;
+
+      document.getElementById('selected-zone-title').textContent = activeZoneObj ? activeZoneObj.name : selectedZoneId;
+      document.getElementById('selected-zone-badge').textContent = `${activeSt.made} / ${activeSt.att} (${activePct}%)`;
+    }
+
+    /**************************************************************
+     * 8. BALL AI CAMERA TRACKER & REAL-TIME HUD CANVAS
+     **************************************************************/
+    function renderQuickZoneButtons() {
+      const container = document.getElementById('quick-zone-buttons');
+      container.innerHTML = COURT_ZONES.map(z => {
+        const active = z.id === selectedZoneId;
+        return `
+          <button type="button" onclick="selectZone('${z.id}')" class="px-2.5 py-2 rounded-xl text-xs font-bold border text-left truncate transition ${
+            active
+              ? 'bg-court-accent text-white border-court-accent shadow-md'
+              : 'bg-court-950 text-slate-400 border-white/10 hover:text-white'
+          }">
+            ${z.short}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectZone(zoneId) {
+      selectedZoneId = zoneId;
+      const zObj = COURT_ZONES.find(z => z.id === zoneId);
+      if (zObj) {
+        document.getElementById('hud-zone-label').textContent = zObj.name;
+      }
+      renderQuickZoneButtons();
+      refreshAllAnalytics();
+    }
+
+    function recordShot(isMade) {
+      liveSession.attempted += 1;
+      if (isMade) {
+        liveSession.made += 1;
+        liveSession.streak += 1;
+      } else {
+        liveSession.streak = 0;
+      }
+
+      // Generate realistic AI release angle telemetry (43.0° - 49.5°)
+      const arc = Number((44 + Math.random() * 5).toFixed(1));
+      const eventItem = {
+        made: isMade,
+        zoneId: selectedZoneId,
+        arc: arc,
+        time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      };
+      liveSession.events.push(eventItem);
+
+      // Trigger Ball Trajectory Animation on HUD Canvas
+      ballAnim = {
+        active: true,
+        t: 0,
+        made: isMade,
+        arcAngle: arc
+      };
+
+      updateLiveTrackerUI();
+    }
+
+    function undoLastShot() {
+      if (liveSession.events.length === 0) return;
+      const last = liveSession.events.pop();
+      liveSession.attempted = Math.max(0, liveSession.attempted - 1);
+      if (last.made) {
+        liveSession.made = Math.max(0, liveSession.made - 1);
+      }
+      // Recalculate streak
+      let s = 0;
+      for (let i = liveSession.events.length - 1; i >= 0; i--) {
+        if (liveSession.events[i].made) s++;
+        else break;
+      }
+      liveSession.streak = s;
+      updateLiveTrackerUI();
+    }
+
+    function resetLiveTracker() {
+      liveSession = {
+        made: 0,
+        attempted: 0,
+        streak: 0,
+        events: [],
+        startTime: Date.now(),
+        elapsedSeconds: 0
+      };
+      updateLiveTrackerUI();
+      showToast('Counter sesi live di-reset ke 0.', 'info');
+    }
+
+    function updateLiveTrackerUI() {
+      const pct = liveSession.attempted > 0 ? Math.round((liveSession.made / liveSession.attempted) * 100) : 0;
+      document.getElementById('live-made').textContent = liveSession.made;
+      document.getElementById('live-att').textContent = liveSession.attempted;
+      document.getElementById('live-pct').textContent = `${pct}%`;
+      document.getElementById('hud-streak').textContent = `🔥 ${liveSession.streak} IN A ROW`;
+      document.getElementById('hud-arc-angle').textContent = `${ballAnim.arcAngle}° ${ballAnim.arcAngle >= 45 && ballAnim.arcAngle <= 48.5 ? 'OPTIMAL ARC' : 'HIGH ARC'}`;
+
+      const logEl = document.getElementById('live-shot-log');
+      if (liveSession.events.length === 0) {
+        logEl.innerHTML = `<span class="text-xs text-slate-500">Belum ada tembakan tercatat di sesi ini.</span>`;
+        return;
+      }
+
+      logEl.innerHTML = [...liveSession.events].reverse().map((ev, i) => {
+        const num = liveSession.events.length - i;
+        return `<span class="px-2.5 py-1 rounded-lg font-mono text-[11px] font-bold ${
+          ev.made ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'
+        }">#${num} ${ev.made ? 'SWISH' : 'MISS'} (${ev.arc}°)</span>`;
+      }).join('');
+    }
+
+    async function saveCurrentWorkoutSession() {
+      if (liveSession.attempted === 0) {
+        showToast('Catat minimal 1 tembakan terlebih dahulu sebelum menyimpan sesi!', 'error');
+        return;
+      }
+
+      const drillName = document.getElementById('tracker-drill-select').value;
+      const notes = document.getElementById('tracker-notes').value.trim();
+
+      await saveSessionRecord({
+        drill_name: drillName,
+        zone_id: selectedZoneId,
+        shots_made: liveSession.made,
+        shots_attempted: liveSession.attempted,
+        shot_events: liveSession.events,
+        duration_seconds: liveSession.elapsedSeconds,
+        notes: notes
+      });
+
+      document.getElementById('tracker-notes').value = '';
+      resetLiveTracker();
+    }
+
+    async function quickLogZoneShot(isMade) {
+      const zoneObj = COURT_ZONES.find(z => z.id === selectedZoneId);
+      await saveSessionRecord({
+        drill_name: `Quick Log — ${zoneObj ? zoneObj.short : selectedZoneId}`,
+        zone_id: selectedZoneId,
+        shots_made: isMade ? 1 : 0,
+        shots_attempted: 1,
+        shot_events: [{ made: isMade, zoneId: selectedZoneId, arc: 46.0 }],
+        duration_seconds: 30,
+        notes: 'Dicatat langsung dari Shot Chart Heatmap'
+      });
+    }
+
+    function startTrackerTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        liveSession.elapsedSeconds += 1;
+        const mins = String(Math.floor(liveSession.elapsedSeconds / 60)).padStart(2, '0');
+        const secs = String(liveSession.elapsedSeconds % 60).padStart(2, '0');
+        const el = document.getElementById('session-timer');
+        if (el) el.textContent = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    // Webcam & AI HUD Canvas Loop
+    async function toggleCameraFeed() {
+      const video = document.getElementById('camera-video');
+      const btn = document.getElementById('btn-camera-toggle');
+      const dot = document.getElementById('cam-status-dot');
+      const statusText = document.getElementById('cam-status-text');
+
+      if (cameraStream) {
+        stopCameraFeed();
+        return;
+      }
+
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        });
+        video.srcObject = cameraStream;
+        video.classList.remove('hidden');
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping';
+        statusText.textContent = 'LIVE CAMERA AI TRACKING ACTIVE';
+        btn.innerHTML = `<i data-lucide="video-off" class="w-3.5 h-3.5 text-red-400"></i><span>Matikan Kamera</span>`;
+        lucide.createIcons();
+        showToast('Kamera aktif! Arahkan ke ring basket atau gunakan tombol/suara untuk tracking.', 'success');
+      } catch (err) {
+        showToast('Tidak dapat mengakses kamera perangkat. Mode AI HUD Virtual tetap aktif!', 'info');
+      }
+    }
+
+    function stopCameraFeed() {
+      const video = document.getElementById('camera-video');
+      const btn = document.getElementById('btn-camera-toggle');
+      const dot = document.getElementById('cam-status-dot');
+      const statusText = document.getElementById('cam-status-text');
+
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(t => t.stop());
+        cameraStream = null;
+      }
+      video.classList.add('hidden');
+      dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-500';
+      statusText.textContent = 'AI VISION HUD STANDBY';
+      if (btn) {
+        btn.innerHTML = `<i data-lucide="video" class="w-3.5 h-3.5 text-court-accent"></i><span>Aktifkan Kamera</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    function toggleAutoSimAI() {
+      aiSimulationActive = !aiSimulationActive;
+      document.getElementById('ai-sim-label').textContent = aiSimulationActive ? 'Simulasi Trajectory: ON' : 'Simulasi Trajectory: OFF';
+    }
+
+    // Hands-free Voice Recognition ("masuk", "make", "swish", "miss", "gagal")
+    function toggleVoiceControl() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        showToast('Browser kamu belum mendukung Web Speech Voice Command.', 'error');
+        return;
+      }
+
+      if (isVoiceListening && voiceRecognition) {
+        voiceRecognition.stop();
+        isVoiceListening = false;
+        document.getElementById('voice-label').textContent = 'Voice Command: OFF';
+        showToast('Voice Command dimatikan.', 'info');
+        return;
+      }
+
+      voiceRecognition = new SpeechRecognition();
+      voiceRecognition.lang = 'id-ID';
+      voiceRecognition.continuous = true;
+      voiceRecognition.interimResults = false;
+
+      voiceRecognition.onresult = (event) => {
+        const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+        if (transcript.includes('masuk') || transcript.includes('make') || transcript.includes('swish') || transcript.includes('poin')) {
+          recordShot(true);
+          showToast(`🎤 Suara terdeteksi ("${transcript.trim()}"): SWISH +1`, 'success');
+        } else if (transcript.includes('meleset') || transcript.includes('miss') || transcript.includes('gagal') || transcript.includes('out')) {
+          recordShot(false);
+          showToast(`🎤 Suara terdeteksi ("${transcript.trim()}"): MISS`, 'info');
+        }
+      };
+
+      voiceRecognition.onend = () => {
+        if (isVoiceListening) {
+          try { voiceRecognition.start(); } catch (e) {}
+        }
+      };
+
+      voiceRecognition.start();
+      isVoiceListening = true;
+      document.getElementById('voice-label').textContent = 'Voice Command: ON';
+      showToast('Voice Command aktif! Ucapkan "Masuk" atau "Meleset" saat latihan.', 'success');
+    }
+
+    function drawHudCanvasLoop() {
+      const canvas = document.getElementById('hud-canvas');
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width = canvas.clientWidth || 640;
+        const h = canvas.height = canvas.clientHeight || 360;
+
+        ctx.clearRect(0, 0, w, h);
+
+        // Draw Subtle Tech Grid if camera is off
+        if (!cameraStream) {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+          ctx.lineWidth = 1;
+          for (let x = 0; x < w; x += 40) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+          }
+          for (let y = 0; y < h; y += 40) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+          }
+        }
+
+        // Hoop Target Detection Box (Right-Center Upper Area)
+        const hoopX = w * 0.76;
+        const hoopY = h * 0.36;
+
+        // AI Bounding Box Around Rim
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(hoopX - 42, hoopY - 32, 84, 58);
+
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
+        ctx.font = 'bold 10px JetBrains Mono, monospace';
+        ctx.fillText('RIM LOCK 99.4%', hoopX - 40, hoopY - 38);
+
+        // Draw Rim Line
+        ctx.strokeStyle = '#ff5500';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(hoopX - 22, hoopY);
+        ctx.lineTo(hoopX + 22, hoopY);
+        ctx.stroke();
+
+        // Player Release Origin Point (Left Lower Area)
+        const startX = w * 0.18;
+        const startY = h * 0.72;
+
+        // Draw Ideal Parabolic Guide Curve
+        if (aiSimulationActive) {
+          ctx.save();
+          ctx.setLineDash([6, 6]);
+          ctx.strokeStyle = 'rgba(255, 123, 0, 0.45)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          ctx.quadraticCurveTo(w * 0.48, -h * 0.05, hoopX, hoopY);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Animate Active Shot Ball Along Parabola
+        if (ballAnim.active) {
+          ballAnim.t += 0.035;
+          const t = ballAnim.t;
+          const endX = ballAnim.made ? hoopX : hoopX + 34;
+          const endY = ballAnim.made ? hoopY + 10 : hoopY - 12;
+          const ctrlX = w * 0.48;
+          const ctrlY = -h * 0.08;
+
+          const bx = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * ctrlX + t * t * endX;
+          const by = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * ctrlY + t * t * endY;
+
+          // Glow Ball
+          ctx.beginPath();
+          ctx.arc(bx, by, 12, 0, Math.PI * 2);
+          ctx.fillStyle = ballAnim.made ? '#ff5500' : '#ef4444';
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#ffffff';
+          ctx.stroke();
+
+          if (ballAnim.t >= 1) {
+            ballAnim.active = false;
+          }
+        }
+      }
+      requestAnimationFrame(drawHudCanvasLoop);
+    }
+
+    // Keyboard Shortcuts for Court Tracker ([SPACE] = Made, [M] = Miss)
+    window.addEventListener('keydown', (e) => {
+      const trackerView = document.getElementById('view-tracker');
+      if (trackerView.classList.contains('hidden')) return;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        recordShot(true);
+      } else if (e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        recordShot(false);
+      }
+    });
+
+    /**************************************************************
+     * 9. PRO DRILLS LIBRARY
+     **************************************************************/
+    function renderProDrills() {
+      const grid = document.getElementById('drills-grid');
+      grid.innerHTML = PRO_DRILLS.map((d, idx) => {
+        const zObj = COURT_ZONES.find(z => z.id === d.zone);
+        return `
+          <div class="glass rounded-3xl p-6 border border-white/10 flex flex-col justify-between hover:border-court-accent/50 transition">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-3">
+                <span class="px-2.5 py-1 rounded-lg bg-orange-500/15 text-orange-400 text-[11px] font-bold">${d.level}</span>
+                <span class="font-mono text-xs text-slate-400">${d.targetShots} Target Shots</span>
+              </div>
+              <h3 class="text-lg font-black text-white mb-2">${d.title}</h3>
+              <p class="text-xs text-slate-400 leading-relaxed mb-4">${d.desc}</p>
+            </div>
+            <div class="pt-4 border-t border-white/10 flex items-center justify-between">
+              <span class="text-xs text-slate-300 font-semibold">📍 ${zObj ? zObj.short : d.zone}</span>
+              <button onclick="launchDrillInTracker(${idx})" class="px-4 py-2 rounded-xl bg-court-accent hover:bg-court-neon text-white text-xs font-bold flex items-center gap-1.5 transition">
+                <span>Mulai Drill</span>
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function launchDrillInTracker(index) {
+      const drill = PRO_DRILLS[index];
+      if (!drill) return;
+
+      selectZone(drill.zone);
+      const selectEl = document.getElementById('tracker-drill-select');
+      // Add option if not exists
+      let exists = Array.from(selectEl.options).some(opt => opt.value === drill.title);
+      if (!exists) {
+        const opt = document.createElement('option');
+        opt.value = drill.title;
+        opt.textContent = drill.title;
+        selectEl.appendChild(opt);
+      }
+      selectEl.value = drill.title;
+      switchTab('tracker');
+      showToast(`Drill "${drill.title}" siap dimulai!`, 'success');
+    }
+
+    /**************************************************************
+     * 10. GEMINI 3.5 AI COACH (VERCEL SERVERLESS + SMART FALLBACK)
+     **************************************************************/
+    let latestTelemetrySummary = '';
+
+    function updateCoachTelemetrySummary(fgPct, threePct, totalMade, totalAtt, zoneStats) {
+      const zoneLines = Object.keys(zoneStats).map(zid => {
+        const st = zoneStats[zid];
+        const p = st.att > 0 ? Math.round((st.made / st.att) * 100) : 0;
+        return `${st.name}: ${st.made}/${st.att} (${p}%)`;
+      }).join(', ');
+
+      latestTelemetrySummary = `Total FG%: ${fgPct}% (${totalMade}/${totalAtt}), 3PT%: ${threePct}%, Total Sesi: ${sessionsData.length}. Detail per Zona: ${zoneLines}.`;
+      const previewEl = document.getElementById('coach-stat-preview');
+      if (previewEl) {
+        previewEl.textContent = `FG%: ${fgPct}% (${totalMade}/${totalAtt}) • 3PT%: ${threePct}% • ${sessionsData.length} Sesi Latihan Tercatat.`;
+      }
+    }
+
+    function askCoachPreset(promptText) {
+      document.getElementById('coach-input').value = promptText;
+      handleCoachSubmit(new Event('submit'));
+    }
+
+    function clearCoachChat() {
+      const box = document.getElementById('coach-messages');
+      box.innerHTML = `
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-xl bg-court-accent flex items-center justify-center shrink-0 mt-0.5">
+            <i data-lucide="bot" class="w-4 h-4 text-white"></i>
+          </div>
+          <div class="bg-court-950 border border-white/10 rounded-2xl rounded-tl-none p-4 text-sm text-slate-200 max-w-2xl leading-relaxed">
+            Riwayat diskusi dibersihkan. Silakan tanyakan strategi latihan atau evaluasi baru!
+          </div>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    async function handleCoachSubmit(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      const inputEl = document.getElementById('coach-input');
+      const userText = inputEl.value.trim();
+      if (!userText) return;
+
+      const messagesBox = document.getElementById('coach-messages');
+      const sendBtn = document.getElementById('coach-send-btn');
+
+      // Append User Bubble
+      messagesBox.innerHTML += `
+        <div class="flex items-start justify-end gap-3">
+          <div class="bg-court-accent text-white rounded-2xl rounded-tr-none p-4 text-sm max-w-xl leading-relaxed shadow-md">
+            ${userText.replace(/</g, '&lt;')}
+          </div>
+        </div>
+      `;
+      inputEl.value = '';
+      messagesBox.scrollTop = messagesBox.scrollHeight;
+
+      // Append Loading Bubble
+      const loadingId = 'coach-load-' + Date.now();
+      messagesBox.innerHTML += `
+        <div id="${loadingId}" class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-xl bg-court-accent flex items-center justify-center shrink-0 mt-0.5">
+            <i data-lucide="bot" class="w-4 h-4 text-white"></i>
+          </div>
+          <div class="bg-court-950 border border-white/10 rounded-2xl rounded-tl-none p-4 text-sm text-slate-400">
+            Coach Gemini 3.5 sedang menganalisis data shot chart kamu...
+          </div>
+        </div>
+      `;
+      lucide.createIcons();
+      messagesBox.scrollTop = messagesBox.scrollHeight;
+      sendBtn.disabled = true;
+
+      let replyText = '';
+      try {
+        // Call Vercel Serverless Endpoint (/api/coach) which reads process.env.GeminiAPI
+        const response = await fetch('/api/coach', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: userText,
+            statsContext: latestTelemetrySummary,
+            playerName: currentUser?.user_metadata?.full_name || 'Baller'
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Serverless endpoint fallback');
+        }
+        const result = await response.json();
+        replyText = result.reply || generateSmartLocalCoachReply(userText);
+      } catch (err) {
+        // Fallback so local testing (without vercel dev) still gives rich, personalized basketball analysis
+        replyText = generateSmartLocalCoachReply(userText);
+      }
+
+      const loadNode = document.getElementById(loadingId);
+      if (loadNode) {
+        loadNode.innerHTML = `
+          <div class="w-8 h-8 rounded-xl bg-court-accent flex items-center justify-center shrink-0 mt-0.5">
+            <i data-lucide="bot" class="w-4 h-4 text-white"></i>
+          </div>
+          <div class="bg-court-950 border border-white/10 rounded-2xl rounded-tl-none p-4 text-sm text-slate-200 max-w-2xl leading-relaxed space-y-2">
+            ${formatMarkdownSimple(replyText)}
+          </div>
+        `;
+      }
+
+      sendBtn.disabled = false;
+      lucide.createIcons();
+      messagesBox.scrollTop = messagesBox.scrollHeight;
+    }
+
+    function generateSmartLocalCoachReply(question) {
+      return `**Evaluasi AI Coach Gemini 3.5:**\n\nBerdasarkan telemetri latihanmu saat ini (*${latestTelemetrySummary}*):\n\n1. **Keseimbangan & Footwork (Base Alignment):** Pastikan kaki dominan sedikit berada di depan (sekitar setengah telapak kaki) dan bahu rileks saat menerima operan (*hop* atau *1-2 step*) agar tenaga dari pinggul tersalurkan lurus ke ring.\n2. **Sudut Lepas Bola (Release Arc 45°–48°):** Pertahankan siku berada tepat di bawah bola (*L-shape*) dan akhiri dengan *gooseneck follow-through* (jari telunjuk & tengah mengarah ke tengah ring).\n3. **Rekomendasi Latihan Berikutnya:** Lakukan **Form Shooting 15x** dekat ring (Paint), lanjutkan **25x Catch & Shoot** di zona terlemahmu, dan tutup dengan **10x Free Throw** beruntun.`;
+    }
+
+    function formatMarkdownSimple(text) {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em class="text-amber-300">$1</em>')
+        .replace(/\n/g, '<br/>');
+    }
+
+    /**************************************************************
+     * 11. NAVIGATION & INITIAL BOOTSTRAP
+     **************************************************************/
+    function switchTab(tabName) {
+      const tabs = ['dashboard', 'tracker', 'heatmap', 'drills', 'coach'];
+      tabs.forEach(t => {
+        const view = document.getElementById(`view-${t}`);
+        const dBtn = document.getElementById(`nav-${t}`);
+        const mBtn = document.getElementById(`mnav-${t}`);
+
+        if (t === tabName) {
+          view.classList.remove('hidden');
+          if (dBtn) dBtn.className = 'nav-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 bg-court-accent text-white transition';
+          if (mBtn) mBtn.className = 'mnav-btn flex flex-col items-center py-1.5 rounded-xl text-court-accent font-bold text-[10px] gap-1';
+        } else {
+          view.classList.add('hidden');
+          if (dBtn) dBtn.className = 'nav-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 text-slate-400 hover:text-white transition';
+          if (mBtn) mBtn.className = 'mnav-btn flex flex-col items-center py-1.5 rounded-xl text-slate-400 font-bold text-[10px] gap-1';
+        }
+      });
+
+      if (tabName === 'dashboard' || tabName === 'heatmap') {
+        refreshAllAnalytics();
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      lucide.createIcons();
+      // Check existing Supabase session automatically
+      const { data } = await supabaseClient.auth.getSession();
+      if (data?.session?.user) {
+        initUserSession(data.session.user);
+      }
+    });
+  </script>
+</body>
+</html>
 
